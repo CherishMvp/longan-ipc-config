@@ -23,8 +23,6 @@ import {
 import { 
   Settings, 
   Monitor, 
-  Download, 
-  Upload, 
   Trash2, 
   Plus, 
   Terminal, 
@@ -33,11 +31,20 @@ import {
   AlertTriangle, 
   XCircle,
   RotateCw,
-  MoreVertical
+  RefreshCw,
+  Save,
+  FileDown,
+  FileUp
 } from 'lucide-vue-next'
 
 const store = useDeviceStore()
 const logContainer = ref<HTMLElement>()
+
+// Loading states
+const isSyncing = ref(false)
+const isPushing = ref(false)
+// Generic loading for other ops (clear, import/export)
+const isGlobalLoading = ref(false)
 
 // Auto-scroll logs
 watch(() => store.logs.length, () => {
@@ -51,11 +58,27 @@ watch(() => store.logs.length, () => {
 // Device management
 const newDevice = ref({ name: '', ip: '', authId: '' })
 
+// IP Validation Regex (IPv4)
+const ipRegex = /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/
+// AuthID Validation (Numeric only)
+const authIdRegex = /^\d+$/
+
+const validateDevice = (device: { name: string, ip: string, authId: string }) => {
+  if (!device.name.trim()) return '设备名称不能为空'
+  if (!device.ip.trim()) return '设备IP不能为空'
+  if (!ipRegex.test(device.ip)) return 'IP地址格式不正确 (例如 192.168.1.100)'
+  if (!device.authId.trim()) return 'AuthID不能为空'
+  if (!authIdRegex.test(device.authId)) return 'AuthID必须为纯数字'
+  return null
+}
+
 const handleAddDevice = () => {
-  if (!newDevice.value.name || !newDevice.value.ip || !newDevice.value.authId) {
-    store.addLog('error', '请填写完整的设备信息')
+  const error = validateDevice(newDevice.value)
+  if (error) {
+    store.addLog('error', error)
     return
   }
+
   try {
     store.addDevice(newDevice.value)
     store.addLog('success', `设备 "${newDevice.value.name}" 添加成功`)
@@ -85,21 +108,25 @@ const handleClearDevices = () => {
 }
 
 // API operations
-const isLoading = ref(false)
+// Single operations map to track loading per device (optional enhancement)
+const deviceLoading = ref<Record<number, boolean>>({})
 
 const handleGetConfig = async (id: number) => {
   const device = store.devices.find(d => d.id === id)
   if (!device) return
 
-  store.addLog('info', `正在获取 "${device.name}" (${device.ip}) 的配置...`)
+  deviceLoading.value[id] = true
+  store.addLog('info', `正在同步 "${device.name}" (${device.ip}) 的配置...`)
 
   try {
     const data = await getGasConfig(device.ip, store.globalConfig)
     store.updateDeviceStatus(id, 'online')
-    store.addLog('success', `"${device.name}" 配置获取成功`, data)
+    store.addLog('success', `"${device.name}" 配置同步成功`, data)
   } catch (e: any) {
     store.updateDeviceStatus(id, 'offline')
-    store.addLog('error', `"${device.name}" 获取失败: ${e.message}`)
+    store.addLog('error', `"${device.name}" 同步失败: ${e.message}`)
+  } finally {
+    deviceLoading.value[id] = false
   }
 }
 
@@ -107,15 +134,18 @@ const handleSetConfig = async (id: number) => {
   const device = store.devices.find(d => d.id === id)
   if (!device) return
 
-  store.addLog('info', `正在设置 "${device.name}" (${device.ip}) 的配置...`)
+  deviceLoading.value[id] = true
+  store.addLog('info', `正在下发配置到 "${device.name}" (${device.ip})...`)
 
   try {
     const data = await setGasConfig(device.ip, device.authId, store.globalConfig)
     store.updateDeviceStatus(id, 'online')
-    store.addLog('success', `"${device.name}" 配置设置成功`, data)
+    store.addLog('success', `"${device.name}" 配置下发成功`, data)
   } catch (e: any) {
     store.updateDeviceStatus(id, 'offline')
-    store.addLog('error', `"${device.name}" 设置失败: ${e.message}`)
+    store.addLog('error', `"${device.name}" 下发失败: ${e.message}`)
+  } finally {
+    deviceLoading.value[id] = false
   }
 }
 
@@ -125,25 +155,25 @@ const handleBatchGet = async () => {
     return
   }
 
-  isLoading.value = true
-  store.addLog('info', `开始批量获取 ${store.devices.length} 台设备的配置...`)
+  isSyncing.value = true
+  store.addLog('info', `开始批量同步 ${store.devices.length} 台设备的配置...`)
 
   let success = 0, fail = 0
   for (const device of store.devices) {
     try {
       const data = await getGasConfig(device.ip, store.globalConfig)
       store.updateDeviceStatus(device.id, 'online')
-      store.addLog('success', `[${device.name}] 获取成功`, data)
+      store.addLog('success', `[${device.name}] 同步成功`, data)
       success++
     } catch (e: any) {
       store.updateDeviceStatus(device.id, 'offline')
-      store.addLog('error', `[${device.name}] 获取失败: ${e.message}`)
+      store.addLog('error', `[${device.name}] 同步失败: ${e.message}`)
       fail++
     }
   }
 
-  isLoading.value = false
-  store.addLog('info', `批量获取完成: 成功 ${success} 台, 失败 ${fail} 台`)
+  isSyncing.value = false
+  store.addLog('info', `批量同步完成: 成功 ${success} 台, 失败 ${fail} 台`)
 }
 
 const handleBatchSet = async () => {
@@ -154,25 +184,25 @@ const handleBatchSet = async () => {
 
   if (!confirm(`确定将配置应用到所有 ${store.devices.length} 台设备？`)) return
 
-  isLoading.value = true
-  store.addLog('info', `开始批量设置 ${store.devices.length} 台设备的配置...`)
+  isPushing.value = true
+  store.addLog('info', `开始批量下发配置到 ${store.devices.length} 台设备...`)
 
   let success = 0, fail = 0
   for (const device of store.devices) {
     try {
       const data = await setGasConfig(device.ip, device.authId, store.globalConfig)
       store.updateDeviceStatus(device.id, 'online')
-      store.addLog('success', `[${device.name}] 设置成功`, data)
+      store.addLog('success', `[${device.name}] 下发成功`, data)
       success++
     } catch (e: any) {
       store.updateDeviceStatus(device.id, 'offline')
-      store.addLog('error', `[${device.name}] 设置失败: ${e.message}`)
+      store.addLog('error', `[${device.name}] 下发失败: ${e.message}`)
       fail++
     }
   }
 
-  isLoading.value = false
-  store.addLog('info', `批量设置完成: 成功 ${success} 台, 失败 ${fail} 台`)
+  isPushing.value = false
+  store.addLog('info', `批量下发完成: 成功 ${success} 台, 失败 ${fail} 台`)
 }
 
 // Import/Export
@@ -222,9 +252,9 @@ const getStatusVariant = (status: string) => {
 
 const getStatusLabel = (status: string) => {
   switch (status) {
-    case 'online': return 'Online'
-    case 'offline': return 'Offline'
-    default: return 'Unknown'
+    case 'online': return '在线'
+    case 'offline': return '离线'
+    default: return '未知'
   }
 }
 
@@ -271,29 +301,29 @@ const getLogClass = (type: string) => {
         <CardContent>
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="space-y-2">
-              <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Username</label>
+              <label class="text-sm font-medium leading-none">账号 (Username)</label>
               <Input v-model="store.globalConfig.username" placeholder="admin" @change="store.saveToStorage()" />
             </div>
             <div class="space-y-2">
-              <label class="text-sm font-medium leading-none">Password</label>
+              <label class="text-sm font-medium leading-none">密码 (Password)</label>
               <Input v-model="store.globalConfig.password" type="password" placeholder="••••••" @change="store.saveToStorage()" />
             </div>
             <div class="space-y-2">
-              <label class="text-sm font-medium leading-none">Client ID</label>
-              <Input v-model="store.globalConfig.clientId" placeholder="Enter Client ID" @change="store.saveToStorage()" />
+              <label class="text-sm font-medium leading-none">客户端 ID (Client ID)</label>
+              <Input v-model="store.globalConfig.clientId" placeholder="输入 Client ID" @change="store.saveToStorage()" />
             </div>
             
             <div class="col-span-1 md:col-span-2 space-y-2">
-              <label class="text-sm font-medium leading-none">Upload Path</label>
+              <label class="text-sm font-medium leading-none">上传地址 (Upload Path)</label>
               <Input v-model="store.globalConfig.uploadPath" placeholder="http://..." @change="store.saveToStorage()" />
             </div>
             
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
-                <label class="text-sm font-medium leading-none">Baud Rate</label>
+                <label class="text-sm font-medium leading-none">波特率 (Baud Rate)</label>
                 <Select v-model="store.globalConfig.baudRate" @update:model-value="store.saveToStorage()">
                   <SelectTrigger>
-                    <SelectValue placeholder="Select rate" />
+                    <SelectValue placeholder="选择波特率" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem :value="9600">9600</SelectItem>
@@ -306,14 +336,14 @@ const getLogClass = (type: string) => {
               </div>
               
               <div class="space-y-2">
-                <label class="text-sm font-medium leading-none">Status</label>
+                <label class="text-sm font-medium leading-none">状态 (Status)</label>
                 <Select v-model="store.globalConfig.enable" @update:model-value="store.saveToStorage()">
                   <SelectTrigger>
-                    <SelectValue placeholder="Select status" />
+                    <SelectValue placeholder="选择状态" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem :value="1">Enabled</SelectItem>
-                    <SelectItem :value="0">Disabled</SelectItem>
+                    <SelectItem :value="1">启用 (Enabled)</SelectItem>
+                    <SelectItem :value="0">禁用 (Disabled)</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -339,11 +369,11 @@ const getLogClass = (type: string) => {
             
             <div class="flex gap-2">
               <Button variant="outline" size="sm" @click="handleExport" class="h-8">
-                <Download class="w-3.5 h-3.5 mr-2" />
+                <FileDown class="w-3.5 h-3.5 mr-2" />
                 导出
               </Button>
               <Button variant="outline" size="sm" @click="fileInput?.click()" class="h-8">
-                <Upload class="w-3.5 h-3.5 mr-2" />
+                <FileUp class="w-3.5 h-3.5 mr-2" />
                 导入
               </Button>
               <input ref="fileInput" type="file" accept=".json" class="hidden" @change="handleImport" />
@@ -354,9 +384,9 @@ const getLogClass = (type: string) => {
         <CardContent class="flex-1 flex flex-col min-h-0 gap-4">
           <!-- Add Device Input Group -->
           <div class="flex flex-col md:flex-row gap-2 p-1">
-            <Input v-model="newDevice.name" placeholder="Device Name" class="flex-1" />
-            <Input v-model="newDevice.ip" placeholder="IP Address" class="flex-1" />
-            <Input v-model="newDevice.authId" placeholder="Auth ID" class="flex-1" />
+            <Input v-model="newDevice.name" placeholder="设备名称" class="flex-1" />
+            <Input v-model="newDevice.ip" placeholder="设备IP (192.168.x.x)" class="flex-1" />
+            <Input v-model="newDevice.authId" placeholder="Auth ID (纯数字)" class="flex-1" />
             <Button @click="handleAddDevice">
               <Plus class="w-4 h-4 mr-2" />
               添加
@@ -394,13 +424,33 @@ const getLogClass = (type: string) => {
                   </Badge>
                   
                   <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button variant="ghost" size="icon" class="h-8 w-8" @click="handleGetConfig(device.id)" :disabled="isLoading" title="Get Config">
-                      <Download class="w-4 h-4" />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      class="h-8 w-8" 
+                      @click="handleGetConfig(device.id)" 
+                      :disabled="isSyncing || isPushing || deviceLoading[device.id]" 
+                      title="同步配置"
+                    >
+                      <RotateCw :class="['w-4 h-4', deviceLoading[device.id] ? 'animate-spin' : '']" />
                     </Button>
-                    <Button variant="ghost" size="icon" class="h-8 w-8" @click="handleSetConfig(device.id)" :disabled="isLoading" title="Set Config">
-                      <Upload class="w-4 h-4" />
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      class="h-8 w-8" 
+                      @click="handleSetConfig(device.id)" 
+                      :disabled="isSyncing || isPushing || deviceLoading[device.id]" 
+                      title="下发配置"
+                    >
+                      <Save class="w-4 h-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" class="h-8 w-8 text-destructive hover:text-destructive" @click="handleRemoveDevice(device.id)" :disabled="isLoading">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      class="h-8 w-8 text-destructive hover:text-destructive" 
+                      @click="handleRemoveDevice(device.id)" 
+                      :disabled="isSyncing || isPushing"
+                    >
                       <Trash2 class="w-4 h-4" />
                     </Button>
                   </div>
@@ -411,15 +461,15 @@ const getLogClass = (type: string) => {
 
           <!-- Batch Actions Footer -->
           <div class="mt-auto pt-4 border-t flex gap-3">
-            <Button variant="secondary" class="flex-1" @click="handleBatchGet" :disabled="isLoading">
-              <RotateCw :class="['w-4 h-4 mr-2', isLoading ? 'animate-spin' : '']" />
-              批量获取
+            <Button variant="secondary" class="flex-1" @click="handleBatchGet" :disabled="isSyncing || isPushing">
+              <RefreshCw :class="['w-4 h-4 mr-2', isSyncing ? 'animate-spin' : '']" />
+              批量同步
             </Button>
-            <Button class="flex-1" @click="handleBatchSet" :disabled="isLoading">
-              <Upload :class="['w-4 h-4 mr-2', isLoading ? 'animate-spin' : '']" />
-              批量设置
+            <Button class="flex-1" @click="handleBatchSet" :disabled="isSyncing || isPushing">
+              <Save :class="['w-4 h-4 mr-2', isPushing ? 'animate-spin' : '']" />
+              批量下发
             </Button>
-            <Button variant="destructive" size="icon" @click="handleClearDevices" :disabled="isLoading">
+            <Button variant="destructive" size="icon" @click="handleClearDevices" :disabled="isSyncing || isPushing">
               <Trash2 class="w-4 h-4" />
             </Button>
           </div>
@@ -436,7 +486,7 @@ const getLogClass = (type: string) => {
             <CardTitle class="text-base">运行日志</CardTitle>
           </div>
           <Button variant="ghost" size="xs" class="h-7 text-xs text-muted-foreground hover:text-destructive" @click="store.clearLogs">
-            Clear
+            清空
           </Button>
         </div>
       </CardHeader>

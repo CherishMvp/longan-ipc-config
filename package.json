@@ -28,6 +28,10 @@
     "copyright": "Copyright © 2025",
     "asar": true,
     "compression": "maximum",
+    "electronLanguages": [
+      "zh-CN",
+      "en"
+    ],
     "directories": {
       "output": "release"
     },
@@ -35,7 +39,11 @@
       "dist/**/*",
       "dist-electron/**/*",
       "!**/*.map",
-      "!**/*.d.ts"
+      "!**/*.d.ts",
+      "!src/**/*",
+      "!docs/**/*",
+      "!generate_icon.py",
+      "!*.md"
     ],
     "win": {
       "icon": "electron/build/icon.ico",

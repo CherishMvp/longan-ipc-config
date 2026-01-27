@@ -32,6 +32,9 @@
     "copyright": "Copyright © 2025",
     "asar": true,
     "compression": "maximum",
+    "publish": [
+      "github"
+    ],
     "electronLanguages": [
       "zh-CN",
       "en"
@@ -63,6 +66,7 @@
       "artifactName": "${name}-${version}-win-${arch}.${ext}"
     },
     "mac": {
+      "icon": "electron/build/icon.icns",
       "target": [
         "dmg",
         "zip"
@@ -70,6 +74,7 @@
       "artifactName": "${name}-${version}-mac-${arch}.${ext}"
     },
     "linux": {
+      "icon": "electron/build/icon.png",
       "target": [
         "AppImage",
         "deb"
@@ -112,6 +117,7 @@
     "@vitejs/plugin-vue": "^5.0.4",
     "electron": "^37.2.4",
     "electron-builder": "^26.0.12",
+    "png2icons": "^2.0.1",
     "typescript": "^5.7.2",
     "unplugin-auto-import": "^0.17.5",
     "unplugin-vue-components": "^0.26.0",

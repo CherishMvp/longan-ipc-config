@@ -12,7 +12,8 @@
     "build": "vue-tsc --noEmit && vite build",
     "build:electron": "vite build --mode electron.prod && electron-builder",
     "preview": "vite preview",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "release": "node scripts/release.js"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
@@ -43,7 +44,8 @@
       "!src/**/*",
       "!docs/**/*",
       "!generate_icon.py",
-      "!*.md"
+      "!*.md",
+      "!scripts/**/*"
     ],
     "win": {
       "icon": "electron/build/icon.ico",

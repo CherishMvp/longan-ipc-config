@@ -2,6 +2,39 @@
 import { ref, nextTick } from 'vue'
 import { useDeviceStore } from '@/stores/device'
 import { getGasConfig, setGasConfig } from '@/api/gas'
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription
+} from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Separator } from '@/components/ui/separator'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { 
+  Settings, 
+  Monitor, 
+  Download, 
+  Upload, 
+  Trash2, 
+  Plus, 
+  Terminal, 
+  Info, 
+  CheckCircle2, 
+  AlertTriangle, 
+  XCircle,
+  RotateCw,
+  MoreVertical
+} from 'lucide-vue-next'
 
 const store = useDeviceStore()
 
@@ -201,238 +234,261 @@ const handleImport = (e: Event) => {
   if (fileInput.value) fileInput.value.value = ''
 }
 
-// Status badge config
-const statusConfig = {
-  online: { text: '在线', class: 'badge-success' },
-  offline: { text: '离线', class: 'badge-destructive' },
-  unknown: { text: '未知', class: 'badge-secondary' }
+// Config helpers for status badge
+const getStatusVariant = (status: string) => {
+  switch (status) {
+    case 'online': return 'default' // Using default (primary) for online instead of success as custom variant might not be fully hooked up without more config, but we can style it via class
+    case 'offline': return 'destructive'
+    default: return 'secondary'
+  }
 }
 
-// Log type config
-const logConfig = {
-  info: { icon: 'i-lucide-info', class: 'text-info' },
-  success: { icon: 'i-lucide-check-circle-2', class: 'text-success' },
-  error: { icon: 'i-lucide-x-circle', class: 'text-destructive' },
-  warning: { icon: 'i-lucide-alert-triangle', class: 'text-warning' }
+const getStatusLabel = (status: string) => {
+  switch (status) {
+    case 'online': return 'Online'
+    case 'offline': return 'Offline'
+    default: return 'Unknown'
+  }
+}
+
+// Log type icons
+const getLogIcon = (type: string) => {
+  switch (type) {
+    case 'info': return Info
+    case 'success': return CheckCircle2
+    case 'error': return XCircle
+    case 'warning': return AlertTriangle
+    default: return Info
+  }
+}
+
+const getLogClass = (type: string) => {
+  switch (type) {
+    case 'info': return 'text-blue-500'
+    case 'success': return 'text-green-500'
+    case 'error': return 'text-red-500'
+    case 'warning': return 'text-yellow-500'
+    default: return 'text-muted-foreground'
+  }
 }
 </script>
 
 <template>
-  <div class="dark grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-4 h-full">
-    <!-- Left: Config & Device Management -->
-    <div class="space-y-4 overflow-auto">
+  <div class="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-6 h-full">
+    <!-- Left Column: Config & Devices -->
+    <div class="flex flex-col gap-6 overflow-hidden">
       
-      <!-- Global Config Card -->
-      <div class="card">
-        <div class="card-header flex-row items-center justify-between">
+      <!-- Global Configuration -->
+      <Card>
+        <CardHeader class="pb-3">
           <div class="flex items-center gap-2">
-            <span class="i-lucide-settings h-4 w-4 text-muted-foreground" />
-            <h3 class="card-title">全局配置</h3>
-          </div>
-        </div>
-        <div class="card-content">
-          <div class="grid grid-cols-3 gap-3 mb-3">
-            <div class="space-y-1.5">
-              <label class="text-xs font-medium text-muted-foreground">设备账号</label>
-              <input
-                v-model="store.globalConfig.username"
-                @change="store.saveToStorage()"
-                class="input-base"
-                placeholder="admin"
-              />
+            <div class="p-2 bg-primary/10 rounded-md text-primary">
+              <Settings class="w-5 h-5" />
             </div>
-            <div class="space-y-1.5">
-              <label class="text-xs font-medium text-muted-foreground">设备密码</label>
-              <input
-                v-model="store.globalConfig.password"
-                @change="store.saveToStorage()"
-                type="password"
-                class="input-base"
-                placeholder="password"
-              />
-            </div>
-            <div class="space-y-1.5">
-              <label class="text-xs font-medium text-muted-foreground">Client ID</label>
-              <input
-                v-model="store.globalConfig.clientId"
-                @change="store.saveToStorage()"
-                class="input-base"
-              />
+            <div>
+              <CardTitle>全局配置</CardTitle>
+              <CardDescription>设置连接 IPC 设备的通用参数</CardDescription>
             </div>
           </div>
-          <div class="grid grid-cols-[1fr_100px_80px] gap-3">
-            <div class="space-y-1.5">
-              <label class="text-xs font-medium text-muted-foreground">上传地址 (UploadPath)</label>
-              <input
-                v-model="store.globalConfig.uploadPath"
-                @change="store.saveToStorage()"
-                class="input-base"
-              />
+        </CardHeader>
+        <CardContent>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="space-y-2">
+              <label class="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Username</label>
+              <Input v-model="store.globalConfig.username" placeholder="admin" @change="store.saveToStorage()" />
             </div>
-            <div class="space-y-1.5">
-              <label class="text-xs font-medium text-muted-foreground">波特率</label>
-              <select v-model.number="store.globalConfig.baudRate" @change="store.saveToStorage()" class="input-base">
-                <option :value="9600">9600</option>
-                <option :value="19200">19200</option>
-                <option :value="38400">38400</option>
-                <option :value="57600">57600</option>
-                <option :value="115200">115200</option>
-              </select>
+            <div class="space-y-2">
+              <label class="text-sm font-medium leading-none">Password</label>
+              <Input v-model="store.globalConfig.password" type="password" placeholder="••••••" @change="store.saveToStorage()" />
             </div>
-            <div class="space-y-1.5">
-              <label class="text-xs font-medium text-muted-foreground">启用</label>
-              <select v-model.number="store.globalConfig.enable" @change="store.saveToStorage()" class="input-base">
-                <option :value="1">启用</option>
-                <option :value="0">禁用</option>
-              </select>
+            <div class="space-y-2">
+              <label class="text-sm font-medium leading-none">Client ID</label>
+              <Input v-model="store.globalConfig.clientId" placeholder="Enter Client ID" @change="store.saveToStorage()" />
+            </div>
+            
+            <div class="col-span-1 md:col-span-2 space-y-2">
+              <label class="text-sm font-medium leading-none">Upload Path</label>
+              <Input v-model="store.globalConfig.uploadPath" placeholder="http://..." @change="store.saveToStorage()" />
+            </div>
+            
+            <div class="grid grid-cols-2 gap-4">
+              <div class="space-y-2">
+                <label class="text-sm font-medium leading-none">Baud Rate</label>
+                <Select v-model="store.globalConfig.baudRate" @update:model-value="store.saveToStorage()">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select rate" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem :value="9600">9600</SelectItem>
+                    <SelectItem :value="19200">19200</SelectItem>
+                    <SelectItem :value="38400">38400</SelectItem>
+                    <SelectItem :value="57600">57600</SelectItem>
+                    <SelectItem :value="115200">115200</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div class="space-y-2">
+                <label class="text-sm font-medium leading-none">Status</label>
+                <Select v-model="store.globalConfig.enable" @update:model-value="store.saveToStorage()">
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem :value="1">Enabled</SelectItem>
+                    <SelectItem :value="0">Disabled</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      <!-- Device Management Card -->
-      <div class="card flex flex-col">
-        <div class="card-header flex-row items-center justify-between">
-          <div class="flex items-center gap-2">
-            <span class="i-lucide-monitor h-4 w-4 text-muted-foreground" />
-            <h3 class="card-title">设备管理</h3>
-            <span class="badge badge-secondary text-[10px] ml-1">{{ store.devices.length }}</span>
+      <!-- Device Management -->
+      <Card class="flex-1 flex flex-col min-h-0">
+        <CardHeader class="pb-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <div class="p-2 bg-blue-500/10 rounded-md text-blue-500">
+                <Monitor class="w-5 h-5" />
+              </div>
+              <div>
+                <CardTitle>设备列表</CardTitle>
+                <CardDescription>管理需要配置的 IPC 设备</CardDescription>
+              </div>
+              <Badge variant="secondary" class="ml-2">{{ store.devices.length }}</Badge>
+            </div>
+            
+            <div class="flex gap-2">
+              <Button variant="outline" size="sm" @click="handleExport" class="h-8">
+                <Download class="w-3.5 h-3.5 mr-2" />
+                导出
+              </Button>
+              <Button variant="outline" size="sm" @click="fileInput?.click()" class="h-8">
+                <Upload class="w-3.5 h-3.5 mr-2" />
+                导入
+              </Button>
+              <input ref="fileInput" type="file" accept=".json" class="hidden" @change="handleImport" />
+            </div>
           </div>
-          <div class="flex gap-1">
-            <button @click="handleExport" class="btn btn-ghost btn-sm">
-              <span class="i-lucide-download h-3.5 w-3.5" />
-              导出
-            </button>
-            <button @click="fileInput?.click()" class="btn btn-ghost btn-sm">
-              <span class="i-lucide-upload h-3.5 w-3.5" />
-              导入
-            </button>
-            <input ref="fileInput" type="file" accept=".json" class="hidden" @change="handleImport" />
-          </div>
-        </div>
-        <div class="card-content flex-1 flex flex-col">
-          <!-- Add Device Form -->
-          <div class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 mb-3 p-2.5 rounded-md bg-muted/50">
-            <input v-model="newDevice.name" class="input-base" placeholder="设备名称" />
-            <input v-model="newDevice.ip" class="input-base" placeholder="设备IP" />
-            <input v-model="newDevice.authId" class="input-base" placeholder="AuthID" />
-            <button @click="handleAddDevice" class="btn btn-default btn-sm">
-              <span class="i-lucide-plus h-4 w-4" />
+        </CardHeader>
+        
+        <CardContent class="flex-1 flex flex-col min-h-0 gap-4">
+          <!-- Add Device Input Group -->
+          <div class="flex flex-col md:flex-row gap-2 p-1">
+            <Input v-model="newDevice.name" placeholder="Device Name" class="flex-1" />
+            <Input v-model="newDevice.ip" placeholder="IP Address" class="flex-1" />
+            <Input v-model="newDevice.authId" placeholder="Auth ID" class="flex-1" />
+            <Button @click="handleAddDevice">
+              <Plus class="w-4 h-4 mr-2" />
               添加
-            </button>
+            </Button>
           </div>
+
+          <Separator />
 
           <!-- Device List -->
-          <div class="flex-1 space-y-1.5 overflow-y-auto max-h-[260px] pr-1">
-            <div v-if="store.devices.length === 0" class="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <span class="i-lucide-inbox h-8 w-8 mb-2 opacity-40" />
-              <span class="text-xs">暂无设备，请添加</span>
+          <div class="flex-1 overflow-auto -mx-6 px-6">
+            <div v-if="store.devices.length === 0" class="flex flex-col items-center justify-center h-40 text-muted-foreground">
+              <Monitor class="w-10 h-10 mb-2 opacity-20" />
+              <p class="text-sm">暂无设备，请添加或导入</p>
             </div>
-            <div
-              v-for="device in store.devices"
-              :key="device.id"
-              class="grid grid-cols-[1fr_1fr_70px_auto] gap-2 items-center p-2.5 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors"
-            >
-              <div class="min-w-0">
-                <div class="text-sm font-medium truncate">{{ device.name }}</div>
-                <div class="text-xs text-muted-foreground truncate">{{ device.ip }}</div>
-              </div>
-              <div class="text-xs text-muted-foreground truncate">{{ device.authId }}</div>
-              <div>
-                <span :class="['badge', statusConfig[device.status].class]">
-                  {{ statusConfig[device.status].text }}
-                </span>
-              </div>
-              <div class="flex gap-0.5">
-                <button @click="handleGetConfig(device.id)" :disabled="isLoading" class="btn btn-ghost btn-icon btn-sm" title="获取配置">
-                  <span class="i-lucide-download h-3.5 w-3.5" />
-                </button>
-                <button @click="handleSetConfig(device.id)" :disabled="isLoading" class="btn btn-ghost btn-icon btn-sm" title="设置配置">
-                  <span class="i-lucide-upload h-3.5 w-3.5" />
-                </button>
-                <button @click="handleRemoveDevice(device.id)" :disabled="isLoading" class="btn btn-ghost btn-icon btn-sm text-destructive" title="删除">
-                  <span class="i-lucide-trash-2 h-3.5 w-3.5" />
-                </button>
+            
+            <div class="space-y-2 pb-2">
+              <div 
+                v-for="device in store.devices" 
+                :key="device.id"
+                class="group flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/50 transition-colors"
+              >
+                <div class="flex items-center gap-4 min-w-0">
+                  <div class="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-background group-hover:text-primary transition-colors">
+                    <Monitor class="w-4 h-4" />
+                  </div>
+                  <div class="min-w-0">
+                    <div class="font-medium truncate">{{ device.name }}</div>
+                    <div class="text-xs text-muted-foreground font-mono">{{ device.ip }} <span class="mx-1">·</span> {{ device.authId }}</div>
+                  </div>
+                </div>
+                
+                <div class="flex items-center gap-3">
+                  <Badge :variant="getStatusVariant(device.status)" class="capitalize">
+                    {{ getStatusLabel(device.status) }}
+                  </Badge>
+                  
+                  <div class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <Button variant="ghost" size="icon" class="h-8 w-8" @click="handleGetConfig(device.id)" :disabled="isLoading" title="Get Config">
+                      <Download class="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" class="h-8 w-8" @click="handleSetConfig(device.id)" :disabled="isLoading" title="Set Config">
+                      <Upload class="w-4 h-4" />
+                    </Button>
+                    <Button variant="ghost" size="icon" class="h-8 w-8 text-destructive hover:text-destructive" @click="handleRemoveDevice(device.id)" :disabled="isLoading">
+                      <Trash2 class="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
 
-          <!-- Batch Actions -->
-          <div class="flex gap-2 mt-3 pt-3 border-t border-border">
-            <button @click="handleBatchGet" :disabled="isLoading" class="btn btn-secondary flex-1">
-              <span v-if="isLoading" class="i-lucide-loader-2 h-4 w-4 animate-spin" />
-              <span v-else class="i-lucide-download h-4 w-4" />
+          <!-- Batch Actions Footer -->
+          <div class="mt-auto pt-4 border-t flex gap-3">
+            <Button variant="secondary" class="flex-1" @click="handleBatchGet" :disabled="isLoading">
+              <RotateCw :class="['w-4 h-4 mr-2', isLoading ? 'animate-spin' : '']" />
               批量获取
-            </button>
-            <button @click="handleBatchSet" :disabled="isLoading" class="btn btn-success flex-1">
-              <span v-if="isLoading" class="i-lucide-loader-2 h-4 w-4 animate-spin" />
-              <span v-else class="i-lucide-upload h-4 w-4" />
+            </Button>
+            <Button class="flex-1" @click="handleBatchSet" :disabled="isLoading">
+              <Upload :class="['w-4 h-4 mr-2', isLoading ? 'animate-spin' : '']" />
               批量设置
-            </button>
-            <button @click="handleClearDevices" :disabled="isLoading" class="btn btn-outline btn-icon" title="清空设备">
-              <span class="i-lucide-trash h-4 w-4" />
-            </button>
+            </Button>
+            <Button variant="destructive" size="icon" @click="handleClearDevices" :disabled="isLoading">
+              <Trash2 class="w-4 h-4" />
+            </Button>
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
 
-    <!-- Right: Log Panel -->
-    <div class="card flex flex-col h-[calc(100vh-140px)]">
-      <div class="card-header flex-row items-center justify-between">
-        <div class="flex items-center gap-2">
-          <span class="i-lucide-terminal h-4 w-4 text-muted-foreground" />
-          <h3 class="card-title">运行日志</h3>
+    <!-- Right Column: Logs -->
+    <Card class="flex flex-col h-full overflow-hidden border-l shadow-none rounded-none md:rounded-lg">
+      <CardHeader class="pb-3 border-b bg-muted/20">
+        <div class="flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <Terminal class="w-4 h-4 text-muted-foreground" />
+            <CardTitle class="text-base">运行日志</CardTitle>
+          </div>
+          <Button variant="ghost" size="xs" class="h-7 text-xs text-muted-foreground hover:text-destructive" @click="clearLogs">
+            Clear
+          </Button>
         </div>
-        <button @click="clearLogs" class="btn btn-ghost btn-sm text-destructive">
-          <span class="i-lucide-trash-2 h-3.5 w-3.5" />
-          清空
-        </button>
-      </div>
-      <div class="card-content flex-1 overflow-hidden">
+      </CardHeader>
+      <CardContent class="flex-1 p-0 overflow-hidden relative bg-black/95">
         <div 
           ref="logContainer"
-          class="h-full overflow-y-auto rounded-md p-2 space-y-1 log-panel"
+          class="absolute inset-0 overflow-y-auto p-4 space-y-3 font-mono text-xs"
         >
-          <div
-            v-for="log in logs"
+          <div 
+            v-for="log in logs" 
             :key="log.id"
-            class="flex items-start gap-2 p-2 rounded text-xs"
+            class="flex gap-3 group"
           >
-            <span :class="[logConfig[log.type].icon, logConfig[log.type].class, 'h-3.5 w-3.5 mt-0.5 flex-shrink-0']" />
-            <div class="flex-1 min-w-0">
+            <div class="shrink-0 mt-0.5 opacity-70">
+              <component :is="getLogIcon(log.type)" :class="['w-3.5 h-3.5', getLogClass(log.type)]" />
+            </div>
+            <div class="flex-1 min-w-0 break-words">
               <div class="flex items-center gap-2 mb-0.5">
-                <span class="text-muted-foreground">{{ log.time }}</span>
+                <span :class="['font-semibold', getLogClass(log.type)]">{{ log.type.toUpperCase() }}</span>
+                <span class="text-zinc-500 text-[10px]">{{ log.time }}</span>
               </div>
-              <span :class="logConfig[log.type].class">{{ log.message }}</span>
-              <pre v-if="log.data" class="mt-1.5 text-[10px] bg-background/50 p-1.5 rounded overflow-x-auto text-muted-foreground">{{ JSON.stringify(log.data, null, 2) }}</pre>
+              <p class="text-zinc-300 leading-relaxed">{{ log.message }}</p>
+              <div v-if="log.data" class="mt-2 p-2 rounded bg-zinc-900 border border-zinc-800 overflow-x-auto">
+                <pre class="text-zinc-400">{{ JSON.stringify(log.data, null, 2) }}</pre>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </div>
+      </CardContent>
+    </Card>
   </div>
 </template>
-
-<style scoped>
-.text-muted-foreground { color: hsl(var(--muted-foreground)); }
-.text-destructive { color: hsl(var(--destructive)); }
-.text-success { color: hsl(var(--success)); }
-.text-warning { color: hsl(var(--warning)); }
-.text-info { color: hsl(var(--info)); }
-.bg-muted\/50 { background-color: hsl(var(--muted) / 0.5); }
-.bg-muted\/30 { background-color: hsl(var(--muted) / 0.3); }
-.hover\:bg-muted\/50:hover { background-color: hsl(var(--muted) / 0.5); }
-.bg-background\/50 { background-color: hsl(var(--background) / 0.5); }
-.border-border { border-color: hsl(var(--border)); }
-
-.badge-success {
-  background-color: hsl(var(--success) / 0.15);
-  color: hsl(var(--success));
-}
-
-.badge-destructive {
-  background-color: hsl(var(--destructive) / 0.15);
-  color: hsl(var(--destructive));
-}
-</style>

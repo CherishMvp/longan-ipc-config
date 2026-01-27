@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
-import UnoCSS from 'unocss/vite'
+import tailwindcss from '@tailwindcss/vite'
 import AutoImport from 'unplugin-auto-import/vite'
 import Components from 'unplugin-vue-components/vite'
 import electron from 'vite-plugin-electron'
@@ -13,7 +13,7 @@ const isElectron = process.env.VITE_ELECTRON === 'true' ||
 export default defineConfig({
   plugins: [
     vue(),
-    UnoCSS(),
+    tailwindcss(),
     AutoImport({
       imports: ['vue', 'vue-router', 'pinia', '@vueuse/core'],
       dts: 'src/auto-imports.d.ts',

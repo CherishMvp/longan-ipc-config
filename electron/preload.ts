@@ -10,6 +10,11 @@ contextBridge.exposeInMainWorld('electronAPI', {
     body?: string
   }) => ipcRenderer.invoke('http-request', options),
 
+  // 窗口控制
+  minimize: () => ipcRenderer.send('minimize-window'),
+  toggleMaximize: () => ipcRenderer.send('maximize-window'),
+  close: () => ipcRenderer.send('close-window'),
+
   // 平台信息
   platform: process.platform,
   

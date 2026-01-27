@@ -1,5 +1,16 @@
 <script setup lang="ts">
 import { useDeviceStore } from '@/stores/device'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { 
+  Monitor, 
+  Wifi, 
+  WifiOff, 
+  Settings2, 
+  ArrowRight, 
+  Activity,
+  Cpu
+} from 'lucide-vue-next'
 
 const store = useDeviceStore()
 
@@ -7,99 +18,113 @@ const features = [
   {
     title: 'IPC气体配置',
     desc: '管理IPC设备的气体传感器配置，支持批量获取和设置',
-    icon: 'i-lucide-settings-2',
+    icon: Settings2,
     path: '/gas-config'
   }
 ]
 
 const stats = [
   { 
-    label: '设备总数', 
+    label: 'Total Devices', 
     value: () => store.devices.length, 
-    icon: 'i-lucide-monitor',
-    iconClass: 'text-muted-foreground'
+    icon: Monitor,
+    variant: 'default' as const
   },
   { 
-    label: '在线设备', 
+    label: 'Online', 
     value: () => store.devices.filter(d => d.status === 'online').length, 
-    icon: 'i-lucide-wifi',
-    iconClass: 'text-success'
+    icon: Wifi,
+    variant: 'success' as const, // Custom variant mapping needed or use class
+    class: 'text-green-500 bg-green-500/10'
   },
   { 
-    label: '离线设备', 
+    label: 'Offline', 
     value: () => store.devices.filter(d => d.status === 'offline').length, 
-    icon: 'i-lucide-wifi-off',
-    iconClass: 'text-destructive'
+    icon: WifiOff,
+    variant: 'destructive' as const,
+    class: 'text-red-500 bg-red-500/10'
   }
 ]
 </script>
 
 <template>
-  <div class="dark space-y-4">
-    <!-- Welcome Card -->
-    <div class="card">
-      <div class="card-content pt-4">
+  <div class="space-y-8 p-1">
+    <!-- Hero Section -->
+    <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/90 to-primary p-8 text-primary-foreground shadow-lg">
+      <div class="relative z-10">
         <div class="flex items-start gap-4">
-          <div class="p-2.5 rounded-md bg-muted">
-            <span class="i-lucide-cpu h-6 w-6 text-foreground" />
+          <div class="p-3 bg-white/10 backdrop-blur-sm rounded-xl">
+            <Cpu class="w-8 h-8" />
           </div>
-          <div class="flex-1">
-            <h3 class="text-sm font-semibold mb-1">欢迎使用传感器配置工具</h3>
-            <p class="text-xs text-muted-foreground leading-relaxed">
-              这是一个用于管理各类传感器设备配置的桌面应用程序，支持多种设备类型和配置方式。
+          <div>
+            <h1 class="text-2xl font-bold tracking-tight mb-2">欢迎使用传感器配置工具</h1>
+            <p class="text-primary-foreground/80 max-w-xl leading-relaxed">
+              这是一个用于管理各类传感器设备配置的专业桌面应用程序。支持批量设备管理、实时状态监控以及参数快速配置。
             </p>
           </div>
         </div>
       </div>
+      
+      <!-- Decorative background elements -->
+      <div class="absolute top-0 right-0 -mt-10 -mr-10 w-64 h-64 bg-white/5 rounded-full blur-3xl"></div>
+      <div class="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-black/10 rounded-full blur-2xl"></div>
     </div>
 
-    <!-- Stats Cards -->
-    <div class="grid grid-cols-3 gap-3">
-      <div v-for="stat in stats" :key="stat.label" class="card kpi-card">
-        <div class="flex items-center justify-between">
-          <div>
-            <p class="text-xs text-muted-foreground">{{ stat.label }}</p>
-            <p class="kpi-value mt-1">{{ stat.value() }}</p>
-          </div>
-          <div :class="[stat.icon, 'h-6 w-6', stat.iconClass]" />
-        </div>
-      </div>
-    </div>
-
-    <!-- Feature Cards -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-      <RouterLink
-        v-for="feature in features"
-        :key="feature.path"
-        :to="feature.path"
-        class="card hover:border-foreground/20 transition-colors cursor-pointer group"
-      >
-        <div class="card-content pt-4">
-          <div class="flex items-start gap-3">
-            <div class="p-2 rounded-md bg-muted group-hover:bg-muted/80 transition-colors">
-              <span :class="feature.icon" class="h-5 w-5 text-foreground" />
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1">
-                <h4 class="text-sm font-medium">{{ feature.title }}</h4>
+    <!-- Stats Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <Card v-for="stat in stats" :key="stat.label" class="overflow-hidden border-none shadow-md bg-card/50 hover:bg-card transition-colors">
+        <CardContent class="p-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-muted-foreground mb-1">{{ stat.label }}</p>
+              <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-bold tracking-tight">{{ stat.value() }}</span>
+                <span class="text-xs text-muted-foreground" v-if="stat.label === 'Total Devices'">units</span>
               </div>
-              <p class="text-xs text-muted-foreground">{{ feature.desc }}</p>
             </div>
-            <span class="i-lucide-chevron-right h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+            <div :class="['p-3 rounded-xl', stat.class || 'bg-primary/10 text-primary']">
+              <component :is="stat.icon" class="w-6 h-6" />
+            </div>
           </div>
-        </div>
-      </RouterLink>
+        </CardContent>
+      </Card>
+    </div>
+
+    <!-- Quick Access / Features -->
+    <div>
+      <div class="flex items-center justify-between mb-4">
+        <h2 class="text-lg font-semibold tracking-tight flex items-center gap-2">
+          <Activity class="w-5 h-5 text-primary" />
+          功能入口
+        </h2>
+      </div>
+      
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <RouterLink
+          v-for="feature in features"
+          :key="feature.path"
+          :to="feature.path"
+          class="group block h-full"
+        >
+          <Card class="h-full transition-all duration-300 hover:shadow-lg hover:border-primary/50 cursor-pointer group-hover:-translate-y-1">
+            <CardHeader>
+              <div class="flex items-start justify-between">
+                <div class="p-2.5 rounded-lg bg-secondary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
+                  <component :is="feature.icon" class="w-6 h-6" />
+                </div>
+                <Badge variant="outline" class="group-hover:border-primary/30 transition-colors">v1.0</Badge>
+              </div>
+              <CardTitle class="mt-4">{{ feature.title }}</CardTitle>
+              <CardDescription class="line-clamp-2 mt-2">{{ feature.desc }}</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div class="flex items-center text-sm text-primary font-medium opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+                进入功能 <ArrowRight class="w-4 h-4 ml-1" />
+              </div>
+            </CardContent>
+          </Card>
+        </RouterLink>
+      </div>
     </div>
   </div>
 </template>
-
-<style scoped>
-.text-muted-foreground { color: hsl(var(--muted-foreground)); }
-.text-foreground { color: hsl(var(--foreground)); }
-.text-success { color: hsl(var(--success)); }
-.text-destructive { color: hsl(var(--destructive)); }
-.bg-muted { background-color: hsl(var(--muted)); }
-.bg-muted\/80 { background-color: hsl(var(--muted) / 0.8); }
-.hover\:border-foreground\/20:hover { border-color: hsl(var(--foreground) / 0.2); }
-.group-hover\:text-foreground:hover { color: hsl(var(--foreground)); }
-</style>

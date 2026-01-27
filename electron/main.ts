@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, net } from 'electron'
+import { app, BrowserWindow, ipcMain, net, shell } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 
@@ -18,8 +18,9 @@ const createWindow = () => {
       contextIsolation: true,
       nodeIntegration: false
     },
-    titleBarStyle: 'hiddenInset',
-    frame: true,
+    frame: false, // 无边框窗口，使用自定义标题栏
+    titleBarStyle: 'hidden',
+    icon: join(__dirname, '../public/icon.png'),
     show: false
   })
 
@@ -34,7 +35,33 @@ const createWindow = () => {
   } else {
     mainWindow.loadFile(join(__dirname, '../dist/index.html'))
   }
+
+  // 外部链接使用默认浏览器打开
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http')) {
+      shell.openExternal(url)
+      return { action: 'deny' }
+    }
+    return { action: 'allow' }
+  })
 }
+
+// 窗口控制 IPC
+ipcMain.on('minimize-window', () => {
+  mainWindow?.minimize()
+})
+
+ipcMain.on('maximize-window', () => {
+  if (mainWindow?.isMaximized()) {
+    mainWindow.unmaximize()
+  } else {
+    mainWindow?.maximize()
+  }
+})
+
+ipcMain.on('close-window', () => {
+  mainWindow?.close()
+})
 
 // IPC: HTTP请求代理 - 解决跨域问题
 ipcMain.handle('http-request', async (_event, options: {

@@ -1,85 +1,90 @@
 <script setup lang="ts">
 import { RouterView, RouterLink, useRoute } from 'vue-router'
 import { useDeviceStore } from '@/stores/device'
+import { Home, Settings2, Box, Cpu } from 'lucide-vue-next'
+import TitleBar from '@/components/TitleBar.vue'
+import ThemeToggle from '@/components/ThemeToggle.vue'
+import { Separator } from '@/components/ui/separator'
 
 const route = useRoute()
 const store = useDeviceStore()
 
 const menuItems = [
-  { path: '/', name: '首页', icon: 'i-lucide-house' },
-  { path: '/gas-config', name: 'IPC气体配置', icon: 'i-lucide-settings-2' }
+  { path: '/', name: '首页', icon: Home },
+  { path: '/gas-config', name: 'IPC气体配置', icon: Settings2 }
 ]
 </script>
 
 <template>
-  <div class="dark flex h-screen bg-background text-foreground">
-    <!-- Sidebar - shadcn style -->
-    <aside class="w-56 border-r border-border flex flex-col bg-background">
-      <!-- Logo -->
-      <div class="h-14 flex items-center gap-2 px-4 border-b border-border">
-        <div class="i-lucide-cpu h-5 w-5 text-foreground" />
-        <span class="font-semibold text-sm">传感器配置工具</span>
-      </div>
-      
-      <!-- Navigation -->
-      <nav class="flex-1 p-2">
-        <div class="space-y-1">
-          <RouterLink
-            v-for="item in menuItems"
-            :key="item.path"
-            :to="item.path"
-            class="flex items-center gap-3 px-3 py-2 rounded-md text-sm cursor-pointer transition-colors"
-            :class="[
-              route.path === item.path 
-                ? 'bg-accent text-accent-foreground font-medium sidebar-link-active' 
-                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-            ]"
-          >
-            <div :class="item.icon" class="h-4 w-4" />
-            <span>{{ item.name }}</span>
-          </RouterLink>
-        </div>
-      </nav>
-      
-      <!-- Footer -->
-      <div class="p-3 border-t border-border">
-        <div class="flex items-center justify-between text-xs text-muted-foreground">
-          <div class="flex items-center gap-2">
-            <span class="status-dot status-dot-online"></span>
-            <span>{{ store.devices.length }} 台设备</span>
-          </div>
-          <span>v1.0.0</span>
-        </div>
-      </div>
-    </aside>
+  <div class="flex flex-col h-screen overflow-hidden bg-background text-foreground font-sans">
+    <!-- Custom TitleBar -->
+    <TitleBar />
 
-    <!-- Main Content -->
-    <main class="flex-1 flex flex-col overflow-hidden">
-      <!-- Header -->
-      <header class="h-14 border-b border-border flex items-center justify-between px-6 bg-background">
-        <h2 class="text-sm font-medium">{{ route.meta.title || '首页' }}</h2>
-        <div class="flex items-center gap-2 text-xs text-muted-foreground">
-          <span class="i-lucide-user h-3.5 w-3.5" />
-          <span>{{ store.globalConfig.username || 'admin' }}</span>
+    <div class="flex flex-1 overflow-hidden">
+      <!-- Sidebar -->
+      <aside class="w-60 border-r bg-card flex flex-col transition-all duration-300 ease-in-out">
+        
+        <!-- Navigation -->
+        <nav class="flex-1 p-3 space-y-1">
+          <div class="mb-4 px-3 py-2">
+            <h2 class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              Menu
+            </h2>
+            <div class="space-y-1">
+              <RouterLink
+                v-for="item in menuItems"
+                :key="item.path"
+                :to="item.path"
+                class="flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-all duration-200 group"
+                :class="[
+                  route.path === item.path 
+                    ? 'bg-primary text-primary-foreground shadow-sm' 
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                ]"
+              >
+                <component :is="item.icon" class="w-4 h-4" />
+                <span>{{ item.name }}</span>
+              </RouterLink>
+            </div>
+          </div>
+        </nav>
+        
+        <!-- Footer Info -->
+        <div class="p-4 mt-auto">
+          <div class="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+            <div class="flex items-center gap-2">
+              <div class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+              <span class="text-xs font-medium">{{ store.devices.length }} Devices</span>
+            </div>
+            <span class="text-[10px] text-muted-foreground">v1.0.0</span>
+          </div>
         </div>
-      </header>
-      
-      <!-- Content Area -->
-      <div class="flex-1 overflow-auto p-4 bg-muted/40">
-        <RouterView />
-      </div>
-    </main>
+      </aside>
+
+      <!-- Main Content -->
+      <main class="flex-1 flex flex-col overflow-hidden bg-muted/10 relative">
+        <!-- Header -->
+        <header class="h-14 border-b flex items-center justify-between px-6 bg-background/80 backdrop-blur-sm sticky top-0 z-10">
+          <div class="flex items-center gap-2">
+            <h2 class="text-base font-semibold tracking-tight">{{ route.meta.title || 'Dashboard' }}</h2>
+          </div>
+          
+          <div class="flex items-center gap-3">
+            <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border text-xs text-muted-foreground">
+              <span class="w-2 h-2 rounded-full bg-primary"></span>
+              {{ store.globalConfig.username || 'admin' }}
+            </div>
+            <ThemeToggle />
+          </div>
+        </header>
+        
+        <!-- Content Area -->
+        <div class="flex-1 overflow-auto p-6 scroll-smooth">
+          <div class="max-w-7xl mx-auto w-full animate-in fade-in slide-in-from-bottom-2 duration-500">
+            <RouterView />
+          </div>
+        </div>
+      </main>
+    </div>
   </div>
 </template>
-
-<style scoped>
-.bg-background { background-color: hsl(var(--background)); }
-.text-foreground { color: hsl(var(--foreground)); }
-.border-border { border-color: hsl(var(--border)); }
-.bg-accent { background-color: hsl(var(--accent)); }
-.text-accent-foreground { color: hsl(var(--accent-foreground)); }
-.text-muted-foreground { color: hsl(var(--muted-foreground)); }
-.hover\:bg-accent:hover { background-color: hsl(var(--accent)); }
-.hover\:text-accent-foreground:hover { color: hsl(var(--accent-foreground)); }
-.bg-muted\/40 { background-color: hsl(var(--muted) / 0.4); }
-</style>

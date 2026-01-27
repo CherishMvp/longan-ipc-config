@@ -11,6 +11,9 @@ export interface ElectronAPI {
     data?: any
     error?: string
   }>
+  minimize: () => void
+  toggleMaximize: () => void
+  close: () => void
   platform: string
   versions: {
     node: string

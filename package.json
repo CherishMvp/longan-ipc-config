@@ -1,0 +1,88 @@
+{
+  "name": "sensor-config-tools",
+  "version": "1.0.0",
+  "description": "传感器配置工具集 - IPC设备气体配置管理",
+  "author": "开发团队",
+  "license": "MIT",
+  "type": "module",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "vite",
+    "dev:electron": "vite --mode electron.dev",
+    "build": "vue-tsc --noEmit && vite build",
+    "build:electron": "vite build --mode electron.prod && electron-builder",
+    "preview": "vite preview"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "electron-builder",
+      "esbuild"
+    ]
+  },
+  "build": {
+    "appId": "com.sensor.config-tools",
+    "productName": "传感器配置工具",
+    "copyright": "Copyright © 2025",
+    "asar": true,
+    "compression": "maximum",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "dist-electron/**/*",
+      "!**/*.map",
+      "!**/*.d.ts"
+    ],
+    "win": {
+      "icon": "electron/build/icon.ico",
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "${productName}_v${version}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "shortcutName": "传感器配置工具",
+      "deleteAppDataOnUninstall": true,
+      "allowElevation": true,
+      "unicode": true
+    }
+  },
+  "dependencies": {
+    "axios": "^1.7.8",
+    "pinia": "^2.2.6",
+    "vue": "^3.5.13",
+    "vue-router": "^4.4.5",
+    "@vueuse/core": "^11.3.0",
+    "radix-vue": "^1.9.0",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.5.2",
+    "lucide-vue-next": "^0.460.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.18.2",
+    "@vitejs/plugin-vue": "^5.0.4",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11",
+    "vue-tsc": "^2.0.13",
+    "electron": "^37.2.4",
+    "electron-builder": "^26.0.12",
+    "vite-plugin-electron": "^0.29.0",
+    "vite-plugin-electron-renderer": "^0.14.6",
+    "unocss": "^0.64.1",
+    "@unocss/preset-uno": "^0.64.1",
+    "@unocss/preset-attributify": "^0.64.1",
+    "@unocss/preset-icons": "^0.64.1",
+    "@unocss/transformer-directives": "^0.64.1",
+    "@iconify/json": "^2.2.276",
+    "unplugin-auto-import": "^0.17.5",
+    "unplugin-vue-components": "^0.26.0"
+  }
+}

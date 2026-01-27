@@ -1,0 +1,326 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "默认模块",
+    "description": "",
+    "version": "1.0.0"
+  },
+  "tags": [],
+  "paths": {
+    "/CGI/State/GetTTLInfo.cgi": {
+      "get": {
+        "summary": "获取气体配置地址",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "Clientid",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "e5cd7e4891bf95d1d19206ce24a7b32e",
+            "schema": {
+              "type": "string",
+              "default": "e5cd7e4891bf95d1d19206ce24a7b32e"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "AuthID": "00001",
+                "BaudRate": 115200,
+                "Enable": 1,
+                "UploadPath": "http://1192.168.0.38:8080/api/service/cameraTransmissionData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "AuthID": {
+                      "type": "string"
+                    },
+                    "BaudRate": {
+                      "type": "integer"
+                    },
+                    "Enable": {
+                      "type": "integer"
+                    },
+                    "UploadPath": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "AuthID",
+                    "BaudRate",
+                    "Enable",
+                    "UploadPath"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ]
+      }
+    },
+    "/CGI/State/SetTTLInfo.cgi": {
+      "post": {
+        "summary": "设置气体配置地址",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "Clientid",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "e5cd7e4891bf95d1d19206ce24a7b32e",
+            "schema": {
+              "type": "string",
+              "default": "e5cd7e4891bf95d1d19206ce24a7b32e"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "AuthID": "00001",
+                "BaudRate": 115200,
+                "Enable": 0,
+                "UploadPath": "http://192.168.0.38:8080/endWebApi/acceptTransparentData"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "AuthID": {
+                      "type": "string"
+                    },
+                    "BaudRate": {
+                      "type": "integer"
+                    },
+                    "Enable": {
+                      "type": "integer"
+                    },
+                    "UploadPath": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "AuthID",
+                    "BaudRate",
+                    "Enable",
+                    "UploadPath"
+                  ]
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": [
+          {
+            "basic": []
+          }
+        ]
+      }
+    },
+    "/endWebApi/acceptTransparentData": {
+      "post": {
+        "summary": "模拟气体推送",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "Clientid",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "e5cd7e4891bf95d1d19206ce24a7b32e",
+            "schema": {
+              "type": "string",
+              "default": "e5cd7e4891bf95d1d19206ce24a7b32e"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": [
+                {
+                  "soc": 99,
+                  "alarm_message": [],
+                  "gas": {
+                    "h2s": 255,
+                    "o2": 22.9,
+                    "no2": 8,
+                    "co": 100
+                  },
+                  "create_time": "2025-09-08 14:58:05",
+                  "sn": "34020000001310000001"
+                },
+                {
+                  "soc": 99,
+                  "alarm_message": [],
+                  "gas": {
+                    "h2s": 255,
+                    "o2": 22.9,
+                    "no2": 8,
+                    "co": 100
+                  },
+                  "create_time": "2025-09-08 14:58:05",
+                  "sn": "34020000001310000001"
+                },
+                {
+                  "soc": 99,
+                  "alarm_message": [],
+                  "gas": {
+                    "h2s": 255,
+                    "o2": 22.9,
+                    "no2": 8,
+                    "co": 100
+                  },
+                  "create_time": "2025-09-08 14:58:05",
+                  "sn": "34020000001310000001"
+                }
+              ]
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    },
+    "/endWebApi/acceptSensorData": {
+      "post": {
+        "summary": "赖周强气体推送模拟",
+        "deprecated": false,
+        "description": "",
+        "tags": [],
+        "parameters": [
+          {
+            "name": "Clientid",
+            "in": "header",
+            "description": "",
+            "required": true,
+            "example": "e5cd7e4891bf95d1d19206ce24a7b32e",
+            "schema": {
+              "type": "string",
+              "default": "e5cd7e4891bf95d1d19206ce24a7b32e"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {}
+              },
+              "example": {
+                "device_id": "t001",
+                "timestamp": 12452555,
+                "metrics": {
+                  "CO": 1,
+                  "NO2": 1,
+                  "O2": 1,
+                  "H2S": 1
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {}
+                }
+              }
+            },
+            "headers": {}
+          }
+        },
+        "security": []
+      }
+    }
+  },
+  "components": {
+    "schemas": {},
+    "responses": {},
+    "securitySchemes": {
+      "basic": {
+        "type": "http",
+        "scheme": "basic"
+      }
+    }
+  },
+  "servers": [
+    {
+      "url": "http://125.79.108.138:7080",
+      "description": "开发环境"
+    },
+    {
+      "url": "http://test-cn.your-api-server.com",
+      "description": "测试环境"
+    },
+    {
+      "url": "http://192.168.1.100",
+      "description": "IPC设备本地服务(用于反向控制及配置)"
+    }
+  ],
+  "security": []
+}

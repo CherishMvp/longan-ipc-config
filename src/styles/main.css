@@ -1,54 +1,71 @@
 @unocss all;
 
-/* Professional Dark Theme - Data-Dense Dashboard Style */
+/* 
+ * shadcn/ui Zinc Dark Theme
+ * Based on https://ui.shadcn.com/docs/theming
+ * Combined with Data-Dense Dashboard + Soft UI Evolution
+ */
+
 :root {
-  /* Base colors - Deep dark background */
-  --background: 240 10% 4%;
-  --foreground: 0 0% 95%;
+  --background: 0 0% 100%;
+  --foreground: 240 10% 3.9%;
+  --card: 0 0% 100%;
+  --card-foreground: 240 10% 3.9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 240 10% 3.9%;
+  --primary: 240 5.9% 10%;
+  --primary-foreground: 0 0% 98%;
+  --secondary: 240 4.8% 95.9%;
+  --secondary-foreground: 240 5.9% 10%;
+  --muted: 240 4.8% 95.9%;
+  --muted-foreground: 240 3.8% 46.1%;
+  --accent: 240 4.8% 95.9%;
+  --accent-foreground: 240 5.9% 10%;
+  --destructive: 0 84.2% 60.2%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 5.9% 90%;
+  --input: 240 5.9% 90%;
+  --ring: 240 5.9% 10%;
+  --radius: 0.5rem;
+}
 
-  /* Card - Slightly lighter than background */
-  --card: 240 10% 6%;
-  --card-foreground: 0 0% 95%;
+.dark {
+  --background: 240 10% 3.9%;
+  --foreground: 0 0% 98%;
+  --card: 240 10% 3.9%;
+  --card-foreground: 0 0% 98%;
+  --popover: 240 10% 3.9%;
+  --popover-foreground: 0 0% 98%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 240 5.9% 10%;
+  --secondary: 240 3.7% 15.9%;
+  --secondary-foreground: 0 0% 98%;
+  --muted: 240 3.7% 15.9%;
+  --muted-foreground: 240 5% 64.9%;
+  --accent: 240 3.7% 15.9%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 62.8% 30.6%;
+  --destructive-foreground: 0 0% 98%;
+  --border: 240 3.7% 15.9%;
+  --input: 240 3.7% 15.9%;
+  --ring: 240 4.9% 83.9%;
+}
 
-  /* Popover */
-  --popover: 240 10% 6%;
-  --popover-foreground: 0 0% 95%;
-
-  /* Primary - Professional Blue */
-  --primary: 217 91% 60%;
-  --primary-foreground: 0 0% 100%;
-
-  /* Secondary */
-  --secondary: 240 5% 15%;
-  --secondary-foreground: 0 0% 95%;
-
-  /* Muted */
-  --muted: 240 5% 15%;
-  --muted-foreground: 240 5% 55%;
-
-  /* Accent */
-  --accent: 240 5% 15%;
-  --accent-foreground: 0 0% 95%;
-
-  /* Destructive - Error Red */
-  --destructive: 0 72% 51%;
-  --destructive-foreground: 0 0% 100%;
-
-  /* Success Green */
+/* Chart colors for Data-Dense Dashboard */
+:root, .dark {
+  --chart-1: 220 70% 50%;
+  --chart-2: 160 60% 45%;
+  --chart-3: 30 80% 55%;
+  --chart-4: 280 65% 60%;
+  --chart-5: 340 75% 55%;
+  
+  /* Status colors */
   --success: 142 71% 45%;
   --success-foreground: 0 0% 100%;
-
-  /* Warning Yellow */
   --warning: 38 92% 50%;
   --warning-foreground: 0 0% 0%;
-
-  /* Borders */
-  --border: 240 5% 18%;
-  --input: 240 5% 18%;
-  --ring: 217 91% 60%;
-
-  /* Radius */
-  --radius: 0.5rem;
+  --info: 217 91% 60%;
+  --info-foreground: 0 0% 100%;
 }
 
 * {
@@ -63,7 +80,8 @@ html {
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans SC', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 
+    'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   background-color: hsl(var(--background));
   color: hsl(var(--foreground));
   font-size: 14px;
@@ -76,42 +94,47 @@ body {
   min-height: 100vh;
 }
 
-/* Custom scrollbar for dark theme */
+/* Custom scrollbar - shadcn style */
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: hsl(var(--background));
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: hsl(var(--muted));
-  border-radius: 4px;
+  background: hsl(var(--border));
+  border-radius: 5px;
+  border: 2px solid hsl(var(--background));
 }
 
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--muted-foreground) / 0.5);
 }
 
-/* Focus ring */
+/* Focus ring - shadcn style */
 *:focus-visible {
   outline: 2px solid hsl(var(--ring));
   outline-offset: 2px;
 }
 
-/* Button Base Styles */
+/* ============================================
+   SHADCN BUTTON VARIANTS
+   Based on: https://ui.shadcn.com/docs/components/button
+   ============================================ */
+
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
   white-space: nowrap;
-  border-radius: var(--radius);
+  border-radius: calc(var(--radius) - 2px);
   font-size: 0.875rem;
   font-weight: 500;
-  transition: all 150ms ease;
+  transition: color 150ms, background-color 150ms, border-color 150ms;
   cursor: pointer;
   border: none;
   padding: 0.5rem 1rem;
@@ -123,13 +146,33 @@ body {
   opacity: 0.5;
 }
 
-.btn-primary {
+.btn-default {
   background-color: hsl(var(--primary));
   color: hsl(var(--primary-foreground));
 }
 
-.btn-primary:hover {
+.btn-default:hover {
   background-color: hsl(var(--primary) / 0.9);
+}
+
+.btn-destructive {
+  background-color: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
+}
+
+.btn-destructive:hover {
+  background-color: hsl(var(--destructive) / 0.9);
+}
+
+.btn-outline {
+  background-color: transparent;
+  border: 1px solid hsl(var(--input));
+  color: hsl(var(--foreground));
+}
+
+.btn-outline:hover {
+  background-color: hsl(var(--accent));
+  color: hsl(var(--accent-foreground));
 }
 
 .btn-secondary {
@@ -143,7 +186,7 @@ body {
 
 .btn-ghost {
   background-color: transparent;
-  color: hsl(var(--muted-foreground));
+  color: hsl(var(--foreground));
 }
 
 .btn-ghost:hover {
@@ -151,15 +194,18 @@ body {
   color: hsl(var(--accent-foreground));
 }
 
-.btn-destructive {
-  background-color: hsl(var(--destructive));
-  color: hsl(var(--destructive-foreground));
+.btn-link {
+  background-color: transparent;
+  color: hsl(var(--primary));
+  text-decoration-line: underline;
+  text-underline-offset: 4px;
 }
 
-.btn-destructive:hover {
-  background-color: hsl(var(--destructive) / 0.9);
+.btn-link:hover {
+  text-decoration-line: underline;
 }
 
+/* Custom button variants for this app */
 .btn-success {
   background-color: hsl(var(--success));
   color: hsl(var(--success-foreground));
@@ -169,21 +215,12 @@ body {
   background-color: hsl(var(--success) / 0.9);
 }
 
-.btn-outline {
-  background-color: transparent;
-  border: 1px solid hsl(var(--border));
-  color: hsl(var(--foreground));
-}
-
-.btn-outline:hover {
-  background-color: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
-}
-
+/* Button sizes */
 .btn-sm {
-  height: 1.75rem;
+  height: 2rem;
   padding: 0 0.75rem;
   font-size: 0.75rem;
+  border-radius: calc(var(--radius) - 4px);
 }
 
 .btn-lg {
@@ -198,21 +235,26 @@ body {
 }
 
 .btn-icon.btn-sm {
-  width: 1.75rem;
+  width: 2rem;
+  height: 2rem;
 }
 
-/* Input Base Styles */
+/* ============================================
+   SHADCN INPUT
+   Based on: https://ui.shadcn.com/docs/components/input
+   ============================================ */
+
 .input-base {
   display: flex;
   height: 2.25rem;
   width: 100%;
-  border-radius: var(--radius);
+  border-radius: calc(var(--radius) - 2px);
   border: 1px solid hsl(var(--input));
-  background-color: hsl(var(--background));
+  background-color: transparent;
   padding: 0.5rem 0.75rem;
   font-size: 0.875rem;
   color: hsl(var(--foreground));
-  transition: all 150ms ease;
+  transition: border-color 150ms, box-shadow 150ms;
 }
 
 .input-base::placeholder {
@@ -230,43 +272,65 @@ body {
   opacity: 0.5;
 }
 
-/* Select Base */
+/* Select styling */
 select.input-base {
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2371717a' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
   background-position: right 0.5rem center;
   background-repeat: no-repeat;
-  background-size: 1.5em 1.5em;
+  background-size: 1.25em 1.25em;
   padding-right: 2.5rem;
 }
 
-/* Card Styles */
+/* ============================================
+   SHADCN CARD
+   Based on: https://ui.shadcn.com/docs/components/card
+   ============================================ */
+
 .card {
   border-radius: var(--radius);
   border: 1px solid hsl(var(--border));
   background-color: hsl(var(--card));
   color: hsl(var(--card-foreground));
-  padding: 1.25rem;
-  box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1);
+  box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
 }
 
 .card-header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding-bottom: 1rem;
-  margin-bottom: 1rem;
-  border-bottom: 1px solid hsl(var(--border));
+  flex-direction: column;
+  gap: 0.375rem;
+  padding: 1rem 1.25rem 0.75rem;
 }
 
 .card-title {
-  font-size: 1rem;
+  font-size: 0.875rem;
   font-weight: 600;
-  letter-spacing: -0.02em;
+  line-height: 1;
+  letter-spacing: -0.01em;
 }
 
-/* Badge Styles */
+.card-description {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+}
+
+.card-content {
+  padding: 0 1.25rem 1rem;
+}
+
+.card-footer {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid hsl(var(--border));
+}
+
+/* ============================================
+   SHADCN BADGE
+   Based on: https://ui.shadcn.com/docs/components/badge
+   ============================================ */
+
 .badge {
   display: inline-flex;
   align-items: center;
@@ -274,32 +338,23 @@ select.input-base {
   padding: 0.125rem 0.625rem;
   font-size: 0.75rem;
   font-weight: 500;
-  transition: colors 150ms ease;
+  line-height: 1;
+  transition: color 150ms, background-color 150ms;
 }
 
 .badge-default {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+}
+
+.badge-secondary {
   background-color: hsl(var(--secondary));
   color: hsl(var(--secondary-foreground));
 }
 
-.badge-primary {
-  background-color: hsl(var(--primary) / 0.15);
-  color: hsl(var(--primary));
-}
-
-.badge-success {
-  background-color: hsl(var(--success) / 0.15);
-  color: hsl(var(--success));
-}
-
 .badge-destructive {
-  background-color: hsl(var(--destructive) / 0.15);
-  color: hsl(var(--destructive));
-}
-
-.badge-warning {
-  background-color: hsl(var(--warning) / 0.15);
-  color: hsl(var(--warning));
+  background-color: hsl(var(--destructive));
+  color: hsl(var(--destructive-foreground));
 }
 
 .badge-outline {
@@ -308,7 +363,76 @@ select.input-base {
   color: hsl(var(--foreground));
 }
 
-/* Utility Classes */
+/* Custom badge variants */
+.badge-success {
+  background-color: hsl(var(--success) / 0.15);
+  color: hsl(var(--success));
+}
+
+.badge-warning {
+  background-color: hsl(var(--warning) / 0.15);
+  color: hsl(var(--warning));
+}
+
+.badge-info {
+  background-color: hsl(var(--info) / 0.15);
+  color: hsl(var(--info));
+}
+
+/* ============================================
+   SHADCN SEPARATOR
+   ============================================ */
+
+.separator {
+  height: 1px;
+  width: 100%;
+  background-color: hsl(var(--border));
+  flex-shrink: 0;
+}
+
+.separator-vertical {
+  height: auto;
+  width: 1px;
+}
+
+/* ============================================
+   DATA-DENSE DASHBOARD UTILITIES
+   Based on: styles.csv Row 28
+   ============================================ */
+
+/* Compact layout for dashboard */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 0.5rem;
+}
+
+.kpi-card {
+  padding: 0.75rem;
+}
+
+.kpi-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.kpi-label {
+  font-size: 0.75rem;
+  color: hsl(var(--muted-foreground));
+  margin-top: 0.25rem;
+}
+
+/* Compact table rows */
+.table-row-compact {
+  height: 2.25rem;
+}
+
+/* ============================================
+   CUSTOM UTILITIES
+   ============================================ */
+
 .flex-center {
   display: flex;
   align-items: center;
@@ -321,24 +445,26 @@ select.input-base {
   justify-content: space-between;
 }
 
-.text-muted {
-  color: hsl(var(--muted-foreground));
+/* Sidebar active link with left border indicator */
+.sidebar-link-active {
+  position: relative;
+  background-color: hsl(var(--accent));
 }
 
-.text-primary {
-  color: hsl(var(--primary));
+.sidebar-link-active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  width: 2px;
+  background-color: hsl(var(--foreground));
+  border-radius: 1px;
 }
 
-.text-success {
-  color: hsl(var(--success));
-}
-
-.text-destructive {
-  color: hsl(var(--destructive));
-}
-
-.text-warning {
-  color: hsl(var(--warning));
+/* Log panel with terminal-like background */
+.log-panel {
+  background-color: hsl(240 10% 5%);
 }
 
 /* Animations */
@@ -362,13 +488,21 @@ select.input-base {
   animation: spin 1s linear infinite;
 }
 
-/* Sidebar link active state glow */
-.sidebar-link-active {
-  background: linear-gradient(90deg, hsl(var(--primary) / 0.15), transparent);
-  border-left: 3px solid hsl(var(--primary));
+/* Status dot */
+.status-dot {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
 }
 
-/* Log panel background */
-.log-panel {
-  background: linear-gradient(180deg, hsl(240 10% 5%) 0%, hsl(240 10% 3.5%) 100%);
+.status-dot-online {
+  background-color: hsl(var(--success));
+}
+
+.status-dot-offline {
+  background-color: hsl(var(--destructive));
+}
+
+.status-dot-unknown {
+  background-color: hsl(var(--muted-foreground));
 }

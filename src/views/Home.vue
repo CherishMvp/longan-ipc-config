@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { useDeviceStore } from '@/stores/device'
-import { Card, CardContent, Badge } from '@/components/ui'
 
 const store = useDeviceStore()
 
@@ -14,72 +13,93 @@ const features = [
 ]
 
 const stats = [
-  { label: '设备总数', value: () => store.devices.length, icon: 'i-lucide-monitor' },
-  { label: '在线设备', value: () => store.devices.filter(d => d.status === 'online').length, icon: 'i-lucide-wifi', color: 'text-[hsl(var(--success))]' },
-  { label: '离线设备', value: () => store.devices.filter(d => d.status === 'offline').length, icon: 'i-lucide-wifi-off', color: 'text-[hsl(var(--destructive))]' }
+  { 
+    label: '设备总数', 
+    value: () => store.devices.length, 
+    icon: 'i-lucide-monitor',
+    iconClass: 'text-muted-foreground'
+  },
+  { 
+    label: '在线设备', 
+    value: () => store.devices.filter(d => d.status === 'online').length, 
+    icon: 'i-lucide-wifi',
+    iconClass: 'text-success'
+  },
+  { 
+    label: '离线设备', 
+    value: () => store.devices.filter(d => d.status === 'offline').length, 
+    icon: 'i-lucide-wifi-off',
+    iconClass: 'text-destructive'
+  }
 ]
 </script>
 
 <template>
-  <div class="space-y-4">
-    <!-- 欢迎卡片 -->
-    <Card>
-      <CardContent class="pt-5">
+  <div class="dark space-y-4">
+    <!-- Welcome Card -->
+    <div class="card">
+      <div class="card-content pt-4">
         <div class="flex items-start gap-4">
-          <div class="p-3 rounded-lg bg-[hsl(var(--primary)/0.1)]">
-            <span class="i-lucide-cpu h-8 w-8 text-[hsl(var(--primary))]" />
+          <div class="p-2.5 rounded-md bg-muted">
+            <span class="i-lucide-cpu h-6 w-6 text-foreground" />
           </div>
           <div class="flex-1">
-            <h3 class="text-lg font-semibold mb-1">欢迎使用传感器配置工具</h3>
-            <p class="text-sm text-[hsl(var(--muted-foreground))]">
+            <h3 class="text-sm font-semibold mb-1">欢迎使用传感器配置工具</h3>
+            <p class="text-xs text-muted-foreground leading-relaxed">
               这是一个用于管理各类传感器设备配置的桌面应用程序，支持多种设备类型和配置方式。
             </p>
           </div>
         </div>
-      </CardContent>
-    </Card>
-
-    <!-- 统计卡片 -->
-    <div class="grid grid-cols-3 gap-4">
-      <Card v-for="stat in stats" :key="stat.label">
-        <CardContent class="pt-4 pb-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <p class="text-xs text-[hsl(var(--muted-foreground))] mb-1">{{ stat.label }}</p>
-              <p class="text-2xl font-bold">{{ stat.value() }}</p>
-            </div>
-            <div :class="[stat.icon, 'h-8 w-8', stat.color || 'text-[hsl(var(--muted-foreground))]']" />
-          </div>
-        </CardContent>
-      </Card>
+      </div>
     </div>
 
-    <!-- 功能入口 -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-3 gap-3">
+      <div v-for="stat in stats" :key="stat.label" class="card kpi-card">
+        <div class="flex items-center justify-between">
+          <div>
+            <p class="text-xs text-muted-foreground">{{ stat.label }}</p>
+            <p class="kpi-value mt-1">{{ stat.value() }}</p>
+          </div>
+          <div :class="[stat.icon, 'h-6 w-6', stat.iconClass]" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Feature Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
       <RouterLink
         v-for="feature in features"
         :key="feature.path"
         :to="feature.path"
-        class="block"
+        class="card hover:border-foreground/20 transition-colors cursor-pointer group"
       >
-        <Card class="h-full hover:border-[hsl(var(--primary)/0.5)] transition-colors cursor-pointer group">
-          <CardContent class="pt-5">
-            <div class="flex items-start gap-4">
-              <div class="p-2.5 rounded-lg bg-[hsl(var(--primary)/0.1)] group-hover:bg-[hsl(var(--primary)/0.15)] transition-colors">
-                <span :class="feature.icon" class="h-6 w-6 text-[hsl(var(--primary))] block group-hover:scale-110 transition-transform" />
-              </div>
-              <div class="flex-1">
-                <div class="flex items-center gap-2 mb-1">
-                  <h4 class="font-semibold">{{ feature.title }}</h4>
-                  <Badge variant="default" class="text-[10px]">推荐</Badge>
-                </div>
-                <p class="text-sm text-[hsl(var(--muted-foreground))]">{{ feature.desc }}</p>
-              </div>
-              <span class="i-lucide-chevron-right h-5 w-5 text-[hsl(var(--muted-foreground))] group-hover:text-[hsl(var(--primary))] group-hover:translate-x-1 transition-all" />
+        <div class="card-content pt-4">
+          <div class="flex items-start gap-3">
+            <div class="p-2 rounded-md bg-muted group-hover:bg-muted/80 transition-colors">
+              <span :class="feature.icon" class="h-5 w-5 text-foreground" />
             </div>
-          </CardContent>
-        </Card>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <h4 class="text-sm font-medium">{{ feature.title }}</h4>
+              </div>
+              <p class="text-xs text-muted-foreground">{{ feature.desc }}</p>
+            </div>
+            <span class="i-lucide-chevron-right h-4 w-4 text-muted-foreground group-hover:text-foreground group-hover:translate-x-0.5 transition-all" />
+          </div>
+        </div>
       </RouterLink>
     </div>
   </div>
 </template>
+
+<style scoped>
+.text-muted-foreground { color: hsl(var(--muted-foreground)); }
+.text-foreground { color: hsl(var(--foreground)); }
+.text-success { color: hsl(var(--success)); }
+.text-destructive { color: hsl(var(--destructive)); }
+.bg-muted { background-color: hsl(var(--muted)); }
+.bg-muted\/80 { background-color: hsl(var(--muted) / 0.8); }
+.hover\:border-foreground\/20:hover { border-color: hsl(var(--foreground) / 0.2); }
+.group-hover\:text-foreground:hover { color: hsl(var(--foreground)); }
+</style>

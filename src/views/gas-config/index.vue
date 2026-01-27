@@ -2,11 +2,10 @@
 import { ref, nextTick } from 'vue'
 import { useDeviceStore } from '@/stores/device'
 import { getGasConfig, setGasConfig } from '@/api/gas'
-import { Card, CardHeader, CardTitle, CardContent, Button, Input, Badge, Select } from '@/components/ui'
 
 const store = useDeviceStore()
 
-// 日志
+// Log system
 interface LogEntry {
   id: number
   type: 'info' | 'success' | 'error' | 'warning'
@@ -14,6 +13,7 @@ interface LogEntry {
   time: string
   data?: any
 }
+
 const logs = ref<LogEntry[]>([
   { id: 0, type: 'info', message: '欢迎使用IPC气体配置管理', time: new Date().toLocaleTimeString() }
 ])
@@ -38,8 +38,9 @@ const clearLogs = () => {
   logs.value = [{ id: Date.now(), type: 'info', message: '日志已清空', time: new Date().toLocaleTimeString() }]
 }
 
-// 添加设备
+// Device management
 const newDevice = ref({ name: '', ip: '', authId: '' })
+
 const handleAddDevice = () => {
   if (!newDevice.value.name || !newDevice.value.ip || !newDevice.value.authId) {
     addLog('error', '请填写完整的设备信息')
@@ -54,7 +55,6 @@ const handleAddDevice = () => {
   }
 }
 
-// 删除设备
 const handleRemoveDevice = (id: number) => {
   const device = store.devices.find(d => d.id === id)
   if (device && confirm(`确定删除设备 "${device.name}"？`)) {
@@ -63,7 +63,6 @@ const handleRemoveDevice = (id: number) => {
   }
 }
 
-// 清空设备
 const handleClearDevices = () => {
   if (store.devices.length === 0) {
     addLog('warning', '设备列表为空')
@@ -75,42 +74,41 @@ const handleClearDevices = () => {
   }
 }
 
-// 获取单个设备配置
+// API operations
 const isLoading = ref(false)
+
 const handleGetConfig = async (id: number) => {
   const device = store.devices.find(d => d.id === id)
   if (!device) return
 
-  addLog('info', `正在获取设备 "${device.name}" (${device.ip}) 的配置...`)
+  addLog('info', `正在获取 "${device.name}" (${device.ip}) 的配置...`)
 
   try {
     const data = await getGasConfig(device.ip, store.globalConfig)
     store.updateDeviceStatus(id, 'online')
-    addLog('success', `设备 "${device.name}" 配置获取成功`, data)
+    addLog('success', `"${device.name}" 配置获取成功`, data)
   } catch (e: any) {
     store.updateDeviceStatus(id, 'offline')
-    addLog('error', `设备 "${device.name}" 获取失败: ${e.message}`)
+    addLog('error', `"${device.name}" 获取失败: ${e.message}`)
   }
 }
 
-// 设置单个设备配置
 const handleSetConfig = async (id: number) => {
   const device = store.devices.find(d => d.id === id)
   if (!device) return
 
-  addLog('info', `正在设置设备 "${device.name}" (${device.ip}) 的配置...`)
+  addLog('info', `正在设置 "${device.name}" (${device.ip}) 的配置...`)
 
   try {
     const data = await setGasConfig(device.ip, device.authId, store.globalConfig)
     store.updateDeviceStatus(id, 'online')
-    addLog('success', `设备 "${device.name}" 配置设置成功`, data)
+    addLog('success', `"${device.name}" 配置设置成功`, data)
   } catch (e: any) {
     store.updateDeviceStatus(id, 'offline')
-    addLog('error', `设备 "${device.name}" 设置失败: ${e.message}`)
+    addLog('error', `"${device.name}" 设置失败: ${e.message}`)
   }
 }
 
-// 批量获取
 const handleBatchGet = async () => {
   if (store.devices.length === 0) {
     addLog('warning', '设备列表为空')
@@ -138,7 +136,6 @@ const handleBatchGet = async () => {
   addLog('info', `批量获取完成: 成功 ${success} 台, 失败 ${fail} 台`)
 }
 
-// 批量设置
 const handleBatchSet = async () => {
   if (store.devices.length === 0) {
     addLog('warning', '设备列表为空')
@@ -168,8 +165,9 @@ const handleBatchSet = async () => {
   addLog('info', `批量设置完成: 成功 ${success} 台, 失败 ${fail} 台`)
 }
 
-// 导入导出
+// Import/Export
 const fileInput = ref<HTMLInputElement>()
+
 const handleExport = () => {
   if (store.devices.length === 0) {
     addLog('warning', '没有设备可导出')
@@ -203,210 +201,238 @@ const handleImport = (e: Event) => {
   if (fileInput.value) fileInput.value.value = ''
 }
 
-// 状态映射
+// Status badge config
 const statusConfig = {
-  online: { text: '在线', variant: 'success' as const },
-  offline: { text: '离线', variant: 'destructive' as const },
-  unknown: { text: '未知', variant: 'secondary' as const }
+  online: { text: '在线', class: 'badge-success' },
+  offline: { text: '离线', class: 'badge-destructive' },
+  unknown: { text: '未知', class: 'badge-secondary' }
 }
 
-// 日志类型图标和样式
+// Log type config
 const logConfig = {
-  info: { icon: 'i-lucide-info', colorClass: 'text-[hsl(var(--primary))]', bgClass: 'bg-[hsl(var(--primary)/0.1)]' },
-  success: { icon: 'i-lucide-check-circle', colorClass: 'text-[hsl(var(--success))]', bgClass: 'bg-[hsl(var(--success)/0.1)]' },
-  error: { icon: 'i-lucide-x-circle', colorClass: 'text-[hsl(var(--destructive))]', bgClass: 'bg-[hsl(var(--destructive)/0.1)]' },
-  warning: { icon: 'i-lucide-alert-triangle', colorClass: 'text-[hsl(var(--warning))]', bgClass: 'bg-[hsl(var(--warning)/0.1)]' }
+  info: { icon: 'i-lucide-info', class: 'text-info' },
+  success: { icon: 'i-lucide-check-circle-2', class: 'text-success' },
+  error: { icon: 'i-lucide-x-circle', class: 'text-destructive' },
+  warning: { icon: 'i-lucide-alert-triangle', class: 'text-warning' }
 }
 </script>
 
 <template>
-  <div class="grid grid-cols-1 xl:grid-cols-[1fr_400px] gap-4 h-full">
-    <!-- 左侧：配置和设备管理 -->
+  <div class="dark grid grid-cols-1 xl:grid-cols-[1fr_380px] gap-4 h-full">
+    <!-- Left: Config & Device Management -->
     <div class="space-y-4 overflow-auto">
-      <!-- 全局配置 -->
-      <Card>
-        <CardHeader class="pb-3">
-          <CardTitle class="flex items-center gap-2">
-            <span class="i-lucide-settings h-4 w-4 text-[hsl(var(--primary))]" />
-            全局配置
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
+      
+      <!-- Global Config Card -->
+      <div class="card">
+        <div class="card-header flex-row items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="i-lucide-settings h-4 w-4 text-muted-foreground" />
+            <h3 class="card-title">全局配置</h3>
+          </div>
+        </div>
+        <div class="card-content">
           <div class="grid grid-cols-3 gap-3 mb-3">
             <div class="space-y-1.5">
-              <label class="text-xs font-medium text-[hsl(var(--muted-foreground))]">设备账号</label>
-              <Input
+              <label class="text-xs font-medium text-muted-foreground">设备账号</label>
+              <input
                 v-model="store.globalConfig.username"
                 @change="store.saveToStorage()"
+                class="input-base"
                 placeholder="admin"
               />
             </div>
             <div class="space-y-1.5">
-              <label class="text-xs font-medium text-[hsl(var(--muted-foreground))]">设备密码</label>
-              <Input
+              <label class="text-xs font-medium text-muted-foreground">设备密码</label>
+              <input
                 v-model="store.globalConfig.password"
                 @change="store.saveToStorage()"
                 type="password"
+                class="input-base"
                 placeholder="password"
               />
             </div>
             <div class="space-y-1.5">
-              <label class="text-xs font-medium text-[hsl(var(--muted-foreground))]">Client ID</label>
-              <Input
+              <label class="text-xs font-medium text-muted-foreground">Client ID</label>
+              <input
                 v-model="store.globalConfig.clientId"
                 @change="store.saveToStorage()"
+                class="input-base"
               />
             </div>
           </div>
-          <div class="grid grid-cols-[1fr_120px_100px] gap-3">
+          <div class="grid grid-cols-[1fr_100px_80px] gap-3">
             <div class="space-y-1.5">
-              <label class="text-xs font-medium text-[hsl(var(--muted-foreground))]">上传地址 (UploadPath)</label>
-              <Input
+              <label class="text-xs font-medium text-muted-foreground">上传地址 (UploadPath)</label>
+              <input
                 v-model="store.globalConfig.uploadPath"
                 @change="store.saveToStorage()"
+                class="input-base"
               />
             </div>
             <div class="space-y-1.5">
-              <label class="text-xs font-medium text-[hsl(var(--muted-foreground))]">波特率</label>
-              <Select v-model="store.globalConfig.baudRate" @change="store.saveToStorage()">
+              <label class="text-xs font-medium text-muted-foreground">波特率</label>
+              <select v-model.number="store.globalConfig.baudRate" @change="store.saveToStorage()" class="input-base">
                 <option :value="9600">9600</option>
                 <option :value="19200">19200</option>
                 <option :value="38400">38400</option>
                 <option :value="57600">57600</option>
                 <option :value="115200">115200</option>
-              </Select>
+              </select>
             </div>
             <div class="space-y-1.5">
-              <label class="text-xs font-medium text-[hsl(var(--muted-foreground))]">启用</label>
-              <Select v-model="store.globalConfig.enable" @change="store.saveToStorage()">
+              <label class="text-xs font-medium text-muted-foreground">启用</label>
+              <select v-model.number="store.globalConfig.enable" @change="store.saveToStorage()" class="input-base">
                 <option :value="1">启用</option>
                 <option :value="0">禁用</option>
-              </Select>
+              </select>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <!-- 设备管理 -->
-      <Card class="flex flex-col">
-        <CardHeader class="pb-3">
-          <CardTitle class="flex items-center gap-2">
-            <span class="i-lucide-monitor h-4 w-4 text-[hsl(var(--primary))]" />
-            设备管理
-            <Badge variant="secondary" class="ml-2">{{ store.devices.length }}</Badge>
-          </CardTitle>
-          <div class="flex gap-2">
-            <Button variant="ghost" size="sm" @click="handleExport">
+      <!-- Device Management Card -->
+      <div class="card flex flex-col">
+        <div class="card-header flex-row items-center justify-between">
+          <div class="flex items-center gap-2">
+            <span class="i-lucide-monitor h-4 w-4 text-muted-foreground" />
+            <h3 class="card-title">设备管理</h3>
+            <span class="badge badge-secondary text-[10px] ml-1">{{ store.devices.length }}</span>
+          </div>
+          <div class="flex gap-1">
+            <button @click="handleExport" class="btn btn-ghost btn-sm">
               <span class="i-lucide-download h-3.5 w-3.5" />
               导出
-            </Button>
-            <Button variant="ghost" size="sm" @click="fileInput?.click()">
+            </button>
+            <button @click="fileInput?.click()" class="btn btn-ghost btn-sm">
               <span class="i-lucide-upload h-3.5 w-3.5" />
               导入
-            </Button>
+            </button>
             <input ref="fileInput" type="file" accept=".json" class="hidden" @change="handleImport" />
           </div>
-        </CardHeader>
-        <CardContent class="flex-1 flex flex-col">
-          <!-- 添加设备 -->
-          <div class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 mb-3 p-3 rounded-lg bg-[hsl(var(--muted))]">
-            <Input v-model="newDevice.name" placeholder="设备名称" />
-            <Input v-model="newDevice.ip" placeholder="设备IP" />
-            <Input v-model="newDevice.authId" placeholder="AuthID" />
-            <Button @click="handleAddDevice" size="sm">
+        </div>
+        <div class="card-content flex-1 flex flex-col">
+          <!-- Add Device Form -->
+          <div class="grid grid-cols-[1fr_1fr_1fr_auto] gap-2 mb-3 p-2.5 rounded-md bg-muted/50">
+            <input v-model="newDevice.name" class="input-base" placeholder="设备名称" />
+            <input v-model="newDevice.ip" class="input-base" placeholder="设备IP" />
+            <input v-model="newDevice.authId" class="input-base" placeholder="AuthID" />
+            <button @click="handleAddDevice" class="btn btn-default btn-sm">
               <span class="i-lucide-plus h-4 w-4" />
               添加
-            </Button>
+            </button>
           </div>
 
-          <!-- 设备列表 -->
-          <div class="flex-1 space-y-2 overflow-y-auto max-h-[280px] pr-1">
-            <div v-if="store.devices.length === 0" class="flex flex-col items-center justify-center py-8 text-[hsl(var(--muted-foreground))]">
-              <span class="i-lucide-inbox h-10 w-10 mb-2 opacity-50" />
-              <span class="text-sm">暂无设备，请添加</span>
+          <!-- Device List -->
+          <div class="flex-1 space-y-1.5 overflow-y-auto max-h-[260px] pr-1">
+            <div v-if="store.devices.length === 0" class="flex flex-col items-center justify-center py-8 text-muted-foreground">
+              <span class="i-lucide-inbox h-8 w-8 mb-2 opacity-40" />
+              <span class="text-xs">暂无设备，请添加</span>
             </div>
             <div
               v-for="device in store.devices"
               :key="device.id"
-              class="grid grid-cols-[1fr_1fr_80px_auto] gap-3 items-center p-3 rounded-lg bg-[hsl(var(--muted)/0.5)] hover:bg-[hsl(var(--muted))] transition-colors"
+              class="grid grid-cols-[1fr_1fr_70px_auto] gap-2 items-center p-2.5 rounded-md bg-muted/30 hover:bg-muted/50 transition-colors"
             >
               <div class="min-w-0">
-                <div class="font-medium text-sm truncate">{{ device.name }}</div>
-                <div class="text-xs text-[hsl(var(--muted-foreground))] truncate">{{ device.ip }}</div>
+                <div class="text-sm font-medium truncate">{{ device.name }}</div>
+                <div class="text-xs text-muted-foreground truncate">{{ device.ip }}</div>
               </div>
-              <div class="text-sm text-[hsl(var(--muted-foreground))] truncate">{{ device.authId }}</div>
+              <div class="text-xs text-muted-foreground truncate">{{ device.authId }}</div>
               <div>
-                <Badge :variant="statusConfig[device.status].variant">
+                <span :class="['badge', statusConfig[device.status].class]">
                   {{ statusConfig[device.status].text }}
-                </Badge>
+                </span>
               </div>
-              <div class="flex gap-1">
-                <Button variant="ghost" size="sm" @click="handleGetConfig(device.id)" :disabled="isLoading" class="h-7 px-2">
+              <div class="flex gap-0.5">
+                <button @click="handleGetConfig(device.id)" :disabled="isLoading" class="btn btn-ghost btn-icon btn-sm" title="获取配置">
                   <span class="i-lucide-download h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="sm" @click="handleSetConfig(device.id)" :disabled="isLoading" class="h-7 px-2">
+                </button>
+                <button @click="handleSetConfig(device.id)" :disabled="isLoading" class="btn btn-ghost btn-icon btn-sm" title="设置配置">
                   <span class="i-lucide-upload h-3.5 w-3.5" />
-                </Button>
-                <Button variant="ghost" size="sm" @click="handleRemoveDevice(device.id)" :disabled="isLoading" class="h-7 px-2 text-[hsl(var(--destructive))] hover:text-[hsl(var(--destructive))]">
+                </button>
+                <button @click="handleRemoveDevice(device.id)" :disabled="isLoading" class="btn btn-ghost btn-icon btn-sm text-destructive" title="删除">
                   <span class="i-lucide-trash-2 h-3.5 w-3.5" />
-                </Button>
+                </button>
               </div>
             </div>
           </div>
 
-          <!-- 批量操作 -->
-          <div class="flex gap-2 mt-3 pt-3 border-t border-[hsl(var(--border))]">
-            <Button @click="handleBatchGet" :disabled="isLoading" class="flex-1" :loading="isLoading">
-              <span class="i-lucide-download h-4 w-4" />
+          <!-- Batch Actions -->
+          <div class="flex gap-2 mt-3 pt-3 border-t border-border">
+            <button @click="handleBatchGet" :disabled="isLoading" class="btn btn-secondary flex-1">
+              <span v-if="isLoading" class="i-lucide-loader-2 h-4 w-4 animate-spin" />
+              <span v-else class="i-lucide-download h-4 w-4" />
               批量获取
-            </Button>
-            <Button variant="success" @click="handleBatchSet" :disabled="isLoading" class="flex-1" :loading="isLoading">
-              <span class="i-lucide-upload h-4 w-4" />
+            </button>
+            <button @click="handleBatchSet" :disabled="isLoading" class="btn btn-success flex-1">
+              <span v-if="isLoading" class="i-lucide-loader-2 h-4 w-4 animate-spin" />
+              <span v-else class="i-lucide-upload h-4 w-4" />
               批量设置
-            </Button>
-            <Button variant="destructive" @click="handleClearDevices" :disabled="isLoading" size="icon">
+            </button>
+            <button @click="handleClearDevices" :disabled="isLoading" class="btn btn-outline btn-icon" title="清空设备">
               <span class="i-lucide-trash h-4 w-4" />
-            </Button>
+            </button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
 
-    <!-- 右侧：运行日志 -->
-    <Card class="flex flex-col h-[calc(100vh-140px)]">
-      <CardHeader class="pb-3">
-        <CardTitle class="flex items-center gap-2">
-          <span class="i-lucide-terminal h-4 w-4 text-[hsl(var(--primary))]" />
-          运行日志
-        </CardTitle>
-        <Button variant="ghost" size="sm" @click="clearLogs" class="text-[hsl(var(--destructive))]">
+    <!-- Right: Log Panel -->
+    <div class="card flex flex-col h-[calc(100vh-140px)]">
+      <div class="card-header flex-row items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="i-lucide-terminal h-4 w-4 text-muted-foreground" />
+          <h3 class="card-title">运行日志</h3>
+        </div>
+        <button @click="clearLogs" class="btn btn-ghost btn-sm text-destructive">
           <span class="i-lucide-trash-2 h-3.5 w-3.5" />
           清空
-        </Button>
-      </CardHeader>
-      <CardContent class="flex-1 overflow-hidden pt-0">
+        </button>
+      </div>
+      <div class="card-content flex-1 overflow-hidden">
         <div 
           ref="logContainer"
-          class="h-full overflow-y-auto rounded-lg p-3 space-y-2 log-panel"
+          class="h-full overflow-y-auto rounded-md p-2 space-y-1 log-panel"
         >
           <div
             v-for="log in logs"
             :key="log.id"
-            :class="['p-2.5 rounded-md text-sm', logConfig[log.type].bgClass]"
+            class="flex items-start gap-2 p-2 rounded text-xs"
           >
-            <div class="flex items-start gap-2">
-              <span :class="[logConfig[log.type].icon, logConfig[log.type].colorClass, 'h-4 w-4 mt-0.5 flex-shrink-0']" />
-              <div class="flex-1 min-w-0">
-                <div class="flex items-center gap-2">
-                  <span class="text-xs text-[hsl(var(--muted-foreground))]">{{ log.time }}</span>
-                </div>
-                <span :class="logConfig[log.type].colorClass">{{ log.message }}</span>
-                <pre v-if="log.data" class="mt-2 text-xs bg-[hsl(var(--background))] p-2 rounded overflow-x-auto text-[hsl(var(--muted-foreground))]">{{ JSON.stringify(log.data, null, 2) }}</pre>
+            <span :class="[logConfig[log.type].icon, logConfig[log.type].class, 'h-3.5 w-3.5 mt-0.5 flex-shrink-0']" />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-0.5">
+                <span class="text-muted-foreground">{{ log.time }}</span>
               </div>
+              <span :class="logConfig[log.type].class">{{ log.message }}</span>
+              <pre v-if="log.data" class="mt-1.5 text-[10px] bg-background/50 p-1.5 rounded overflow-x-auto text-muted-foreground">{{ JSON.stringify(log.data, null, 2) }}</pre>
             </div>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   </div>
 </template>
+
+<style scoped>
+.text-muted-foreground { color: hsl(var(--muted-foreground)); }
+.text-destructive { color: hsl(var(--destructive)); }
+.text-success { color: hsl(var(--success)); }
+.text-warning { color: hsl(var(--warning)); }
+.text-info { color: hsl(var(--info)); }
+.bg-muted\/50 { background-color: hsl(var(--muted) / 0.5); }
+.bg-muted\/30 { background-color: hsl(var(--muted) / 0.3); }
+.hover\:bg-muted\/50:hover { background-color: hsl(var(--muted) / 0.5); }
+.bg-background\/50 { background-color: hsl(var(--background) / 0.5); }
+.border-border { border-color: hsl(var(--border)); }
+
+.badge-success {
+  background-color: hsl(var(--success) / 0.15);
+  color: hsl(var(--success));
+}
+
+.badge-destructive {
+  background-color: hsl(var(--destructive) / 0.15);
+  color: hsl(var(--destructive));
+}
+</style>

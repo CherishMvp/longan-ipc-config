@@ -2,7 +2,10 @@
   "name": "sensor-config-tools",
   "version": "1.0.3",
   "description": "传感器配置工具集 - IPC设备气体配置管理",
-  "author": "开发团队",
+  "author": {
+    "name": "CherishMvp",
+    "email": "bbttcherish@outlook.com"
+  },
   "license": "MIT",
   "type": "module",
   "main": "dist-electron/main.js",
@@ -71,6 +74,8 @@
         "AppImage",
         "deb"
       ],
+      "maintainer": "bbttcherish@outlook.com",
+      "category": "Utility",
       "artifactName": "${name}-${version}-linux-${arch}.${ext}"
     },
     "nsis": {

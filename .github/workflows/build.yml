@@ -26,7 +26,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm' # 缓存 npm 依赖，加快构建速度 (虽然我们用pnpm，但setup-node支持)
+          # cache: 'npm'  <-- 移除这行，因为我们手动配置了下面的 pnpm 缓存
 
       - name: Install pnpm
         uses: pnpm/action-setup@v2

@@ -1,27 +1,29 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-// 暴露安全的API到渲染进程
 contextBridge.exposeInMainWorld('electronAPI', {
-  // HTTP请求代理 - 无跨域限制
-  httpRequest: (options: {
-    url: string
-    method: 'GET' | 'POST'
-    headers?: Record<string, string>
-    body?: string
-  }) => ipcRenderer.invoke('http-request', options),
+  // HTTP
+  httpRequest: (options: any) => ipcRenderer.invoke('http-request', options),
 
-  // 窗口控制
+  // Window
   minimize: () => ipcRenderer.send('minimize-window'),
   toggleMaximize: () => ipcRenderer.send('maximize-window'),
   close: () => ipcRenderer.send('close-window'),
 
-  // 平台信息
+  // Database - Devices
+  getDevices: () => ipcRenderer.invoke('db-get-devices'),
+  addDevice: (device: any) => ipcRenderer.invoke('db-add-device', device),
+  removeDevice: (id: number) => ipcRenderer.invoke('db-remove-device', id),
+  updateDeviceStatus: (id: number, status: string) => ipcRenderer.invoke('db-update-device-status', { id, status }),
+
+  // Database - Logs
+  getLogs: (limit?: number) => ipcRenderer.invoke('db-get-logs', limit),
+  addLog: (log: any) => ipcRenderer.invoke('db-add-log', log),
+  clearLogs: () => ipcRenderer.invoke('db-clear-logs'),
+
+  // Database - Config
+  saveConfig: (config: any) => ipcRenderer.invoke('db-save-config', config),
+  getConfig: () => ipcRenderer.invoke('db-get-config'),
+
   platform: process.platform,
-  
-  // 版本信息
-  versions: {
-    node: process.versions.node,
-    electron: process.versions.electron,
-    chrome: process.versions.chrome
-  }
+  versions: process.versions
 })

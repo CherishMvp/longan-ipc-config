@@ -60,8 +60,10 @@
     "@tailwindcss/vite": "^4.1.18",
     "@vueuse/core": "^11.3.0",
     "axios": "^1.7.8",
+    "better-sqlite3": "^12.6.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "fs-extra": "^11.3.3",
     "lucide-vue-next": "^0.460.0",
     "pinia": "^2.2.6",
     "radix-vue": "^1.9.0",
@@ -73,6 +75,8 @@
     "vue-router": "^4.4.5"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/fs-extra": "^11.0.4",
     "@types/node": "^18.18.2",
     "@vitejs/plugin-vue": "^5.0.4",
     "electron": "^37.2.4",

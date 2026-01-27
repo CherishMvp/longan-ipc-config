@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, nextTick } from 'vue'
+import { ref, nextTick, watch } from 'vue'
 import { useDeviceStore } from '@/stores/device'
 import { getGasConfig, setGasConfig } from '@/api/gas'
 import {
@@ -37,54 +37,31 @@ import {
 } from 'lucide-vue-next'
 
 const store = useDeviceStore()
-
-// Log system
-interface LogEntry {
-  id: number
-  type: 'info' | 'success' | 'error' | 'warning'
-  message: string
-  time: string
-  data?: any
-}
-
-const logs = ref<LogEntry[]>([
-  { id: 0, type: 'info', message: '欢迎使用IPC气体配置管理', time: new Date().toLocaleTimeString() }
-])
 const logContainer = ref<HTMLElement>()
 
-const addLog = (type: LogEntry['type'], message: string, data?: any) => {
-  logs.value.push({
-    id: Date.now(),
-    type,
-    message,
-    time: new Date().toLocaleTimeString(),
-    data
-  })
+// Auto-scroll logs
+watch(() => store.logs.length, () => {
   nextTick(() => {
     if (logContainer.value) {
       logContainer.value.scrollTop = logContainer.value.scrollHeight
     }
   })
-}
-
-const clearLogs = () => {
-  logs.value = [{ id: Date.now(), type: 'info', message: '日志已清空', time: new Date().toLocaleTimeString() }]
-}
+})
 
 // Device management
 const newDevice = ref({ name: '', ip: '', authId: '' })
 
 const handleAddDevice = () => {
   if (!newDevice.value.name || !newDevice.value.ip || !newDevice.value.authId) {
-    addLog('error', '请填写完整的设备信息')
+    store.addLog('error', '请填写完整的设备信息')
     return
   }
   try {
     store.addDevice(newDevice.value)
-    addLog('success', `设备 "${newDevice.value.name}" 添加成功`)
+    store.addLog('success', `设备 "${newDevice.value.name}" 添加成功`)
     newDevice.value = { name: '', ip: '', authId: '' }
   } catch (e: any) {
-    addLog('error', e.message)
+    store.addLog('error', e.message)
   }
 }
 
@@ -92,18 +69,18 @@ const handleRemoveDevice = (id: number) => {
   const device = store.devices.find(d => d.id === id)
   if (device && confirm(`确定删除设备 "${device.name}"？`)) {
     store.removeDevice(id)
-    addLog('warning', `设备 "${device.name}" 已删除`)
+    store.addLog('warning', `设备 "${device.name}" 已删除`)
   }
 }
 
 const handleClearDevices = () => {
   if (store.devices.length === 0) {
-    addLog('warning', '设备列表为空')
+    store.addLog('warning', '设备列表为空')
     return
   }
   if (confirm('确定清空所有设备？')) {
     store.clearDevices()
-    addLog('warning', '已清空所有设备')
+    store.addLog('warning', '已清空所有设备')
   }
 }
 
@@ -114,15 +91,15 @@ const handleGetConfig = async (id: number) => {
   const device = store.devices.find(d => d.id === id)
   if (!device) return
 
-  addLog('info', `正在获取 "${device.name}" (${device.ip}) 的配置...`)
+  store.addLog('info', `正在获取 "${device.name}" (${device.ip}) 的配置...`)
 
   try {
     const data = await getGasConfig(device.ip, store.globalConfig)
     store.updateDeviceStatus(id, 'online')
-    addLog('success', `"${device.name}" 配置获取成功`, data)
+    store.addLog('success', `"${device.name}" 配置获取成功`, data)
   } catch (e: any) {
     store.updateDeviceStatus(id, 'offline')
-    addLog('error', `"${device.name}" 获取失败: ${e.message}`)
+    store.addLog('error', `"${device.name}" 获取失败: ${e.message}`)
   }
 }
 
@@ -130,72 +107,72 @@ const handleSetConfig = async (id: number) => {
   const device = store.devices.find(d => d.id === id)
   if (!device) return
 
-  addLog('info', `正在设置 "${device.name}" (${device.ip}) 的配置...`)
+  store.addLog('info', `正在设置 "${device.name}" (${device.ip}) 的配置...`)
 
   try {
     const data = await setGasConfig(device.ip, device.authId, store.globalConfig)
     store.updateDeviceStatus(id, 'online')
-    addLog('success', `"${device.name}" 配置设置成功`, data)
+    store.addLog('success', `"${device.name}" 配置设置成功`, data)
   } catch (e: any) {
     store.updateDeviceStatus(id, 'offline')
-    addLog('error', `"${device.name}" 设置失败: ${e.message}`)
+    store.addLog('error', `"${device.name}" 设置失败: ${e.message}`)
   }
 }
 
 const handleBatchGet = async () => {
   if (store.devices.length === 0) {
-    addLog('warning', '设备列表为空')
+    store.addLog('warning', '设备列表为空')
     return
   }
 
   isLoading.value = true
-  addLog('info', `开始批量获取 ${store.devices.length} 台设备的配置...`)
+  store.addLog('info', `开始批量获取 ${store.devices.length} 台设备的配置...`)
 
   let success = 0, fail = 0
   for (const device of store.devices) {
     try {
       const data = await getGasConfig(device.ip, store.globalConfig)
       store.updateDeviceStatus(device.id, 'online')
-      addLog('success', `[${device.name}] 获取成功`, data)
+      store.addLog('success', `[${device.name}] 获取成功`, data)
       success++
     } catch (e: any) {
       store.updateDeviceStatus(device.id, 'offline')
-      addLog('error', `[${device.name}] 获取失败: ${e.message}`)
+      store.addLog('error', `[${device.name}] 获取失败: ${e.message}`)
       fail++
     }
   }
 
   isLoading.value = false
-  addLog('info', `批量获取完成: 成功 ${success} 台, 失败 ${fail} 台`)
+  store.addLog('info', `批量获取完成: 成功 ${success} 台, 失败 ${fail} 台`)
 }
 
 const handleBatchSet = async () => {
   if (store.devices.length === 0) {
-    addLog('warning', '设备列表为空')
+    store.addLog('warning', '设备列表为空')
     return
   }
 
   if (!confirm(`确定将配置应用到所有 ${store.devices.length} 台设备？`)) return
 
   isLoading.value = true
-  addLog('info', `开始批量设置 ${store.devices.length} 台设备的配置...`)
+  store.addLog('info', `开始批量设置 ${store.devices.length} 台设备的配置...`)
 
   let success = 0, fail = 0
   for (const device of store.devices) {
     try {
       const data = await setGasConfig(device.ip, device.authId, store.globalConfig)
       store.updateDeviceStatus(device.id, 'online')
-      addLog('success', `[${device.name}] 设置成功`, data)
+      store.addLog('success', `[${device.name}] 设置成功`, data)
       success++
     } catch (e: any) {
       store.updateDeviceStatus(device.id, 'offline')
-      addLog('error', `[${device.name}] 设置失败: ${e.message}`)
+      store.addLog('error', `[${device.name}] 设置失败: ${e.message}`)
       fail++
     }
   }
 
   isLoading.value = false
-  addLog('info', `批量设置完成: 成功 ${success} 台, 失败 ${fail} 台`)
+  store.addLog('info', `批量设置完成: 成功 ${success} 台, 失败 ${fail} 台`)
 }
 
 // Import/Export
@@ -203,7 +180,7 @@ const fileInput = ref<HTMLInputElement>()
 
 const handleExport = () => {
   if (store.devices.length === 0) {
-    addLog('warning', '没有设备可导出')
+    store.addLog('warning', '没有设备可导出')
     return
   }
   const data = store.exportDevices()
@@ -214,7 +191,7 @@ const handleExport = () => {
   a.download = 'ipc_devices.json'
   a.click()
   URL.revokeObjectURL(url)
-  addLog('success', `已导出 ${store.devices.length} 个设备`)
+  store.addLog('success', `已导出 ${store.devices.length} 个设备`)
 }
 
 const handleImport = (e: Event) => {
@@ -225,9 +202,9 @@ const handleImport = (e: Event) => {
   reader.onload = (ev) => {
     try {
       const count = store.importDevices(ev.target?.result as string)
-      addLog('success', `成功导入 ${count} 个设备`)
+      store.addLog('success', `成功导入 ${count} 个设备`)
     } catch (err: any) {
-      addLog('error', `导入失败: ${err.message}`)
+      store.addLog('error', `导入失败: ${err.message}`)
     }
   }
   reader.readAsText(file)
@@ -237,7 +214,7 @@ const handleImport = (e: Event) => {
 // Config helpers for status badge
 const getStatusVariant = (status: string) => {
   switch (status) {
-    case 'online': return 'default' // Using default (primary) for online instead of success as custom variant might not be fully hooked up without more config, but we can style it via class
+    case 'online': return 'default'
     case 'offline': return 'destructive'
     default: return 'secondary'
   }
@@ -458,7 +435,7 @@ const getLogClass = (type: string) => {
             <Terminal class="w-4 h-4 text-muted-foreground" />
             <CardTitle class="text-base">运行日志</CardTitle>
           </div>
-          <Button variant="ghost" size="xs" class="h-7 text-xs text-muted-foreground hover:text-destructive" @click="clearLogs">
+          <Button variant="ghost" size="xs" class="h-7 text-xs text-muted-foreground hover:text-destructive" @click="store.clearLogs">
             Clear
           </Button>
         </div>
@@ -469,7 +446,7 @@ const getLogClass = (type: string) => {
           class="absolute inset-0 overflow-y-auto p-4 space-y-3 font-mono text-xs"
         >
           <div 
-            v-for="log in logs" 
+            v-for="log in store.logs" 
             :key="log.id"
             class="flex gap-3 group"
           >

@@ -11,10 +11,12 @@
     "dev:electron": "vite --mode electron.dev",
     "build": "vue-tsc --noEmit && vite build",
     "build:electron": "vite build --mode electron.prod && electron-builder",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "postinstall": "electron-builder install-app-deps"
   },
   "pnpm": {
     "onlyBuiltDependencies": [
+      "better-sqlite3",
       "electron",
       "electron-builder",
       "esbuild"

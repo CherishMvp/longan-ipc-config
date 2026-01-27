@@ -1,36 +1,29 @@
 <script setup lang="ts">
-import { type HTMLAttributes, computed } from 'vue'
-import { Separator, type SeparatorProps } from 'radix-vue'
-import { cn } from '@/lib/utils'
+import type { SeparatorProps } from "reka-ui"
+import type { HTMLAttributes } from "vue"
+import { reactiveOmit } from "@vueuse/core"
+import { Separator } from "reka-ui"
+import { cn } from "@/lib/utils"
 
-const props = defineProps<SeparatorProps & { class?: HTMLAttributes['class'], label?: string }>()
-
-const delegatedProps = computed(() => {
-  const { class: _, ...delegated } = props
-
-  return delegated
+const props = withDefaults(defineProps<
+  SeparatorProps & { class?: HTMLAttributes["class"] }
+>(), {
+  orientation: "horizontal",
+  decorative: true,
 })
+
+const delegatedProps = reactiveOmit(props, "class")
 </script>
 
 <template>
   <Separator
+    data-slot="separator"
     v-bind="delegatedProps"
     :class="
       cn(
-        'shrink-0 bg-border',
-        props.orientation === 'vertical' ? 'h-full w-[1px]' : 'h-[1px] w-full',
+        'bg-border shrink-0 data-[orientation=horizontal]:h-px data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-px',
         props.class,
       )
     "
-  >
-    <span
-      v-if="props.label"
-      :class="
-        cn(
-          'text-xs text-muted-foreground bg-background absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex justify-center items-center',
-          props.orientation === 'vertical' ? 'w-[1px] py-1' : 'h-[1px] px-1',
-        )
-      "
-    >{{ props.label }}</span>
-  </Separator>
+  />
 </template>

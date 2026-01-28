@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "noUnusedLocals": true,
+    "sourceMap": false,
+    "skipLibCheck": true,
+    "outDir": "../dist-electron",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["../src/*"]
+    },
+    "lib": ["ESNext"]
+  },
+  "include": ["**/*.ts"],
+  "exclude": ["../node_modules", "../src"]
+}

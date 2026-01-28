@@ -1,7 +1,9 @@
 import { app, BrowserWindow, ipcMain, net, shell } from 'electron'
 import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
-import { initDB, getDB } from './db'
+import { initDB } from './db'
+import { startDiscovery, stopDiscovery } from './discovery'
+import { getNetworkSettings, setNetworkSettings } from './onvif'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -22,8 +24,7 @@ const createWindow = () => {
       contextIsolation: true,
       nodeIntegration: false
     },
-    frame: false,
-    titleBarStyle: 'hidden',
+    frame: true,
     icon: join(__dirname, '../public/icon.png'),
     show: false
   })
@@ -34,7 +35,6 @@ const createWindow = () => {
 
   if (process.env.VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(process.env.VITE_DEV_SERVER_URL)
-    mainWindow.webContents.openDevTools()
   } else {
     mainWindow.loadFile(join(__dirname, '../dist/index.html'))
   }
@@ -48,21 +48,18 @@ const createWindow = () => {
   })
 }
 
-// Window Controls IPC
-ipcMain.on('minimize-window', () => {
-  mainWindow?.minimize()
-})
-
-ipcMain.on('maximize-window', () => {
-  if (mainWindow?.isMaximized()) {
-    mainWindow.unmaximize()
-  } else {
-    mainWindow?.maximize()
+// Discovery IPC
+ipcMain.handle('start-scan', (_event, options) => {
+  if (mainWindow) {
+    startDiscovery(mainWindow, options)
+    return { success: true }
   }
+  return { success: false, error: 'Main window not found' }
 })
 
-ipcMain.on('close-window', () => {
-  mainWindow?.close()
+ipcMain.handle('stop-scan', () => {
+  stopDiscovery()
+  return { success: true }
 })
 
 // Database IPC
@@ -94,7 +91,6 @@ ipcMain.handle('db-update-device-status', (_event, { id, status }) => {
 
 ipcMain.handle('db-get-logs', (_event, limit = 100) => {
   const logs = db.prepare('SELECT * FROM logs ORDER BY created_at DESC LIMIT ?').all(limit)
-  // Parse data field if it exists
   return logs.map((log: any) => ({
     ...log,
     data: log.data ? JSON.parse(log.data) : null
@@ -115,7 +111,6 @@ ipcMain.handle('db-clear-logs', () => {
   return { success: true }
 })
 
-// Config persistence
 ipcMain.handle('db-save-config', (_event, config) => {
   const stmt = db.prepare('INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)')
   const run = db.transaction((conf) => {
@@ -136,7 +131,6 @@ ipcMain.handle('db-get-config', () => {
   return config
 })
 
-// HTTP Proxy
 ipcMain.handle('http-request', async (_event, options: {
   url: string
   method: 'GET' | 'POST'
@@ -149,20 +143,14 @@ ipcMain.handle('http-request', async (_event, options: {
         method: options.method,
         url: options.url
       })
-
       if (options.headers) {
         Object.entries(options.headers).forEach(([key, value]) => {
           request.setHeader(key, value)
         })
       }
-
       let responseData = ''
-
       request.on('response', (response) => {
-        response.on('data', (chunk) => {
-          responseData += chunk.toString()
-        })
-
+        response.on('data', (chunk) => { responseData += chunk.toString() })
         response.on('end', () => {
           try {
             const data = JSON.parse(responseData)
@@ -171,25 +159,10 @@ ipcMain.handle('http-request', async (_event, options: {
             resolve({ success: true, status: response.statusCode, data: responseData })
           }
         })
-
-        response.on('error', (error) => {
-          resolve({ success: false, error: error.message })
-        })
       })
-
-      request.on('error', (error) => {
-        resolve({ success: false, error: error.message })
-      })
-
-      setTimeout(() => {
-        request.abort()
-        resolve({ success: false, error: '请求超时 (10秒)' })
-      }, 10000)
-
-      if (options.body) {
-        request.write(options.body)
-      }
-
+      request.on('error', (error) => { resolve({ success: false, error: error.message }) })
+      setTimeout(() => { request.abort(); resolve({ success: false, error: '请求超时' }) }, 10000)
+      if (options.body) request.write(options.body)
       request.end()
     } catch (error: any) {
       resolve({ success: false, error: error.message })
@@ -197,18 +170,24 @@ ipcMain.handle('http-request', async (_event, options: {
   })
 })
 
-app.whenReady().then(() => {
-  createWindow()
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow()
-    }
-  })
-})
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit()
+// Onvif IPC
+ipcMain.handle('onvif-get-network', async (_event, { url, username, password }) => {
+  try {
+    const result = await getNetworkSettings(url, username, password)
+    return { success: true, ...result }
+  } catch (error: any) {
+    return { success: false, error: error.message }
   }
 })
+
+ipcMain.handle('onvif-set-network', async (_event, { url, token, config, username, password }) => {
+  try {
+    await setNetworkSettings(url, token, config, username, password)
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+})
+
+app.whenReady().then(createWindow)
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })

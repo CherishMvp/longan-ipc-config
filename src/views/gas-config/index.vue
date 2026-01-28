@@ -43,8 +43,7 @@ const logContainer = ref<HTMLElement>()
 // Loading states
 const isSyncing = ref(false)
 const isPushing = ref(false)
-// Generic loading for other ops (clear, import/export)
-const isGlobalLoading = ref(false)
+const deviceLoading = ref<Record<number, boolean>>({})
 
 // Auto-scroll logs
 watch(() => store.logs.length, () => {
@@ -108,9 +107,6 @@ const handleClearDevices = () => {
 }
 
 // API operations
-// Single operations map to track loading per device (optional enhancement)
-const deviceLoading = ref<Record<number, boolean>>({})
-
 const handleGetConfig = async (id: number) => {
   const device = store.devices.find(d => d.id === id)
   if (!device) return
@@ -299,7 +295,8 @@ const getLogClass = (type: string) => {
           </div>
         </CardHeader>
         <CardContent>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Row 1: Username, Password, Client ID -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div class="space-y-2">
               <label class="text-sm font-medium leading-none">账号 (Username)</label>
               <Input v-model="store.globalConfig.username" placeholder="admin" @change="store.saveToStorage()" />
@@ -312,48 +309,54 @@ const getLogClass = (type: string) => {
               <label class="text-sm font-medium leading-none">客户端 ID (Client ID)</label>
               <Input v-model="store.globalConfig.clientId" placeholder="输入 Client ID" @change="store.saveToStorage()" />
             </div>
-            
-            <div class="col-span-1 md:col-span-2 space-y-2">
-              <label class="text-sm font-medium leading-none">上传地址 (Upload Path)</label>
-              <Input v-model="store.globalConfig.uploadPath" placeholder="http://..." @change="store.saveToStorage()" />
+          </div>
+
+          <!-- Row 2: Upload Path (Full Width) -->
+          <div class="mb-4 space-y-2">
+            <label class="text-sm font-medium leading-none">上传地址 (Upload Path)</label>
+            <Input v-model="store.globalConfig.uploadPath" placeholder="http://..." @change="store.saveToStorage()" />
+          </div>
+          
+          <!-- Row 3: Baud Rate, Status (Explicit Grid Cols 3) -->
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="space-y-2">
+              <label class="text-sm font-medium leading-none">波特率 (Baud Rate)</label>
+              <Select v-model="store.globalConfig.baudRate" @update:model-value="store.saveToStorage()">
+                <SelectTrigger>
+                  <SelectValue placeholder="选择波特率" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem :value="9600">9600</SelectItem>
+                  <SelectItem :value="19200">19200</SelectItem>
+                  <SelectItem :value="38400">38400</SelectItem>
+                  <SelectItem :value="57600">57600</SelectItem>
+                  <SelectItem :value="115200">115200</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
             
-            <div class="grid grid-cols-2 gap-4">
-              <div class="space-y-2">
-                <label class="text-sm font-medium leading-none">波特率 (Baud Rate)</label>
-                <Select v-model="store.globalConfig.baudRate" @update:model-value="store.saveToStorage()">
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择波特率" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem :value="9600">9600</SelectItem>
-                    <SelectItem :value="19200">19200</SelectItem>
-                    <SelectItem :value="38400">38400</SelectItem>
-                    <SelectItem :value="57600">57600</SelectItem>
-                    <SelectItem :value="115200">115200</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div class="space-y-2">
-                <label class="text-sm font-medium leading-none">状态 (Status)</label>
-                <Select v-model="store.globalConfig.enable" @update:model-value="store.saveToStorage()">
-                  <SelectTrigger>
-                    <SelectValue placeholder="选择状态" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem :value="1">启用 (Enabled)</SelectItem>
-                    <SelectItem :value="0">禁用 (Disabled)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div class="space-y-2">
+              <label class="text-sm font-medium leading-none">状态 (Status)</label>
+              <Select v-model="store.globalConfig.enable" @update:model-value="store.saveToStorage()">
+                <SelectTrigger>
+                  <SelectValue placeholder="选择状态" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem :value="1">启用 (Enabled)</SelectItem>
+                  <SelectItem :value="0">禁用 (Disabled)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
+            
+            <!-- Empty column to fill space and keep alignment -->
+            <div class="hidden md:block"></div>
           </div>
         </CardContent>
       </Card>
 
       <!-- Device Management -->
       <Card class="flex-1 flex flex-col min-h-0">
+        <!-- ... existing content ... -->
         <CardHeader class="pb-3">
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -485,7 +488,7 @@ const getLogClass = (type: string) => {
             <Terminal class="w-4 h-4 text-muted-foreground" />
             <CardTitle class="text-base">运行日志</CardTitle>
           </div>
-          <Button variant="ghost" size="xs" class="h-7 text-xs text-muted-foreground hover:text-destructive" @click="store.clearLogs">
+          <Button variant="ghost" size="sm" class="h-7 text-xs text-muted-foreground hover:text-destructive" @click="store.clearLogs">
             清空
           </Button>
         </div>

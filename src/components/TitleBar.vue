@@ -1,38 +1,40 @@
 <script setup lang="ts">
 import { ref } from 'vue'
-import { Minus, Square, X, Copy } from 'lucide-vue-next'
+import { Minus, Square, X, Copy, Bug } from 'lucide-vue-next'
 
 const isMaximized = ref(false)
 
-const minimize = () => {
+const minimize = async () => {
   console.log('[TitleBar] Minimize clicked')
-  if (window.electronAPI) window.electronAPI.minimize()
+  if (window.electronAPI?.minimize) {
+    const success = await window.electronAPI.minimize()
+    console.log('[TitleBar] Minimize IPC success:', success)
+  } else {
+    console.error('[TitleBar] electronAPI.minimize not found')
+  }
 }
 
-const toggleMaximize = () => {
+const toggleMaximize = async () => {
   console.log('[TitleBar] Maximize clicked')
-  if (window.electronAPI) {
-    window.electronAPI.toggleMaximize()
+  if (window.electronAPI?.toggleMaximize) {
+    const success = await window.electronAPI.toggleMaximize()
+    console.log('[TitleBar] Maximize IPC success:', success)
     isMaximized.value = !isMaximized.value
   }
 }
 
-const closeApp = () => {
+const closeApp = async () => {
   console.log('[TitleBar] Close clicked')
-  if (window.electronAPI) window.electronAPI.close()
+  if (window.electronAPI?.close) {
+    await window.electronAPI.close()
+  }
 }
 </script>
 
 <template>
-  <!-- 
-    Root div: 不设 drag，只负责布局和层级
-  -->
-  <div class="h-8 flex items-center justify-between bg-background border-b border-border select-none relative z-50">
+  <div class="h-10 flex items-center justify-between bg-background border-b border-border select-none relative z-[9999]">
     
-    <!-- 
-      Drag Area: 只有左侧包含标题的区域可拖拽
-      flex-1 确保它占据除了按钮以外的所有空间
-    -->
+    <!-- Drag Area -->
     <div class="flex-1 h-full flex items-center gap-2 px-3 text-xs font-medium text-muted-foreground drag-region">
       <div class="w-4 h-4 bg-primary rounded-sm flex items-center justify-center text-[8px] text-primary-foreground font-bold">
         S
@@ -40,32 +42,38 @@ const closeApp = () => {
       <span>传感器配置工具</span>
     </div>
 
-    <!-- 
-      Button Area: 独立于 Drag Area 之外
-      不需要 no-drag，因为它不是 drag 元素的子元素
-    -->
-    <div class="flex h-full no-drag">
+    <!-- Button Area -->
+    <div class="flex h-full no-drag items-center pr-1">
+      <!-- Debug Button -->
       <button 
         @click="minimize" 
-        class="h-full w-10 flex items-center justify-center hover:bg-accent hover:text-foreground text-muted-foreground transition-colors outline-none cursor-default"
-        title="最小化"
+        class="h-8 w-8 flex items-center justify-center bg-red-500 text-white rounded-full mr-2 hover:bg-red-600 transition-colors pointer-events-auto"
+        style="-webkit-app-region: no-drag;"
       >
-        <Minus class="w-3.5 h-3.5" />
+        <Bug class="w-4 h-4" />
+      </button>
+
+      <button 
+        @click="minimize" 
+        class="h-full w-12 flex items-center justify-center hover:bg-accent hover:text-foreground text-muted-foreground transition-colors outline-none cursor-pointer pointer-events-auto"
+        style="-webkit-app-region: no-drag;"
+      >
+        <Minus class="w-4 h-4" />
       </button>
       <button 
         @click="toggleMaximize" 
-        class="h-full w-10 flex items-center justify-center hover:bg-accent hover:text-foreground text-muted-foreground transition-colors outline-none cursor-default"
-        title="最大化/还原"
+        class="h-full w-12 flex items-center justify-center hover:bg-accent hover:text-foreground text-muted-foreground transition-colors outline-none cursor-pointer pointer-events-auto"
+        style="-webkit-app-region: no-drag;"
       >
-        <Square v-if="!isMaximized" class="w-3 h-3" />
-        <Copy v-else class="w-3 h-3 rotate-180" />
+        <Square v-if="!isMaximized" class="w-3.5 h-3.5" />
+        <Copy v-else class="w-3.5 h-3.5 rotate-180" />
       </button>
       <button 
         @click="closeApp" 
-        class="h-full w-10 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground text-muted-foreground transition-colors outline-none cursor-default"
-        title="关闭"
+        class="h-full w-12 flex items-center justify-center hover:bg-destructive hover:text-destructive-foreground text-muted-foreground transition-colors outline-none cursor-pointer pointer-events-auto"
+        style="-webkit-app-region: no-drag;"
       >
-        <X class="w-3.5 h-3.5" />
+        <X class="w-4 h-4" />
       </button>
     </div>
   </div>
@@ -73,14 +81,9 @@ const closeApp = () => {
 
 <style scoped>
 .drag-region {
-  -webkit-app-region: drag;
+  -webkit-app-region: drag !important;
 }
 .no-drag {
-  /* 
-    Optional: Just in case there's overlap or layout shift.
-    Electron docs recommend avoiding nested drag/no-drag if possible.
-    Separating siblings is the safest way.
-  */
-  -webkit-app-region: no-drag;
+  -webkit-app-region: no-drag !important;
 }
 </style>

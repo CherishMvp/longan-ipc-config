@@ -20,6 +20,12 @@ const features = [
     desc: '管理IPC设备的气体传感器配置，支持批量获取和设置',
     icon: Settings2,
     path: '/gas-config'
+  },
+  {
+    title: '设备自动发现',
+    desc: '基于 ONVIF/私有协议扫描局域网设备，一键导入',
+    icon: Wifi,
+    path: '/discovery'
   }
 ]
 

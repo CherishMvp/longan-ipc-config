@@ -80,26 +80,27 @@ export const useDeviceStore = defineStore('device', () => {
       throw new Error(`设备IP ${device.ip} 已存在`)
     }
     
-    const newDevice = {
+    const newDeviceData = {
       ...device,
       status: 'unknown'
     }
 
     if (window.electronAPI) {
-      const res = await window.electronAPI.addDevice(newDevice)
+      const res = await window.electronAPI.addDevice(newDeviceData)
       if (res.success && res.id) {
-        devices.value.unshift({ ...newDevice, id: res.id, status: 'unknown' } as Device)
+        devices.value.unshift({ ...newDeviceData, id: res.id, status: 'unknown' } as Device)
       } else {
         throw new Error(res.error || 'Failed to add device to DB')
       }
     } else {
       // Fallback for dev without electron (though we use ipc now)
-      devices.value.push({ ...newDevice, id: Date.now(), status: 'unknown' } as Device)
+      devices.value.push({ ...newDeviceData, id: Date.now(), status: 'unknown' } as Device)
     }
   }
 
   // 删除设备
   const removeDevice = async (id: number) => {
+    if (!id) return
     if (window.electronAPI) {
       await window.electronAPI.removeDevice(id)
     }
@@ -108,11 +109,10 @@ export const useDeviceStore = defineStore('device', () => {
 
   // 清空设备
   const clearDevices = async () => {
-    // Ideally we'd have a clearDevices API, but for now we loop or add one
-    // Let's just clear local state for now as mass delete API wasn't added
-    // To be safe, we should loop delete
-    for (const d of devices.value) {
-      if (window.electronAPI) await window.electronAPI.removeDevice(d.id)
+    if (window.electronAPI) {
+      for (const d of devices.value) {
+        await window.electronAPI.removeDevice(d.id)
+      }
     }
     devices.value = []
   }
@@ -159,21 +159,37 @@ export const useDeviceStore = defineStore('device', () => {
     }
   }
 
-  // 导入导出保持不变 (内存操作)
+  // 导出导出保持不变 (内存操作)
   const exportDevices = () => {
     return JSON.stringify(devices.value, null, 2)
   }
 
-  const importDevices = (jsonStr: string) => {
-    const imported = JSON.parse(jsonStr) as Device[]
-    if (!Array.isArray(imported)) throw new Error('格式错误')
+  const importDevices = async (jsonStr: string) => {
+    let imported: any[]
+    try {
+      imported = JSON.parse(jsonStr)
+    } catch (e) {
+      throw new Error('解析 JSON 失败，请检查格式')
+    }
+
+    if (!Array.isArray(imported)) throw new Error('格式错误：数据必须是数组')
+    
     let count = 0
-    imported.forEach(d => {
+    // 使用 for...of 确保异步串行执行，避免 ID 冲突
+    for (const d of imported) {
       if (d.name && d.ip && d.authId && !devices.value.find(x => x.ip === d.ip)) {
-        addDevice(d) // Reuse addDevice to persist
-        count++
+        try {
+          await addDevice({
+            name: String(d.name),
+            ip: String(d.ip),
+            authId: String(d.authId)
+          })
+          count++
+        } catch (err) {
+          console.warn(`跳过设备 ${d.ip}:`, err)
+        }
       }
-    })
+    }
     return count
   }
 

@@ -18,6 +18,12 @@ const routes: RouteRecordRaw[] = [
         name: 'GasConfig',
         component: () => import('@/views/gas-config/index.vue'),
         meta: { title: 'IPC气体配置' }
+      },
+      {
+        path: 'discovery',
+        name: 'DeviceDiscovery',
+        component: () => import('@/views/discovery/index.vue'),
+        meta: { title: '设备自动发现' }
       }
     ]
   }

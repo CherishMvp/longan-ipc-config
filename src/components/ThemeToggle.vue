@@ -13,8 +13,6 @@ const mode = useColorMode({
   emitAuto: true,
   selector: 'html',
   attribute: 'class',
-  valueDark: 'dark',
-  valueLight: '',
 })
 </script>
 

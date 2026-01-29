@@ -43,3 +43,8 @@ daily-log.md
 
 # OpenCode skill cache
 .opencode/skills/*/cache/
+
+# Logs
+worklog-*.md
+.opencode/
+

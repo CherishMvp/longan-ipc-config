@@ -39,7 +39,7 @@ const closeApp = async () => {
       <div class="w-4 h-4 bg-primary rounded-sm flex items-center justify-center text-[8px] text-primary-foreground font-bold">
         S
       </div>
-      <span>传感器配置工具</span>
+      <span>Longan 聚合工具箱</span>
     </div>
 
     <!-- Button Area -->

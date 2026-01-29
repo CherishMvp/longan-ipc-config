@@ -63,9 +63,9 @@ const stats = [
             <Cpu class="w-8 h-8" />
           </div>
           <div>
-            <h1 class="text-2xl font-bold tracking-tight mb-2">欢迎使用传感器配置工具</h1>
+            <h1 class="text-2xl font-bold tracking-tight mb-2">欢迎使用 Longan 聚合工具箱</h1>
             <p class="text-primary-foreground/80 max-w-xl leading-relaxed">
-              这是一个用于管理各类传感器设备配置的专业桌面应用程序。支持批量设备管理、实时状态监控以及参数快速配置。
+              这是一个集成了多种实用工具的综合平台。包含 IPC 气体传感器配置、设备自动发现等功能，支持批量管理与实时监控。
             </p>
           </div>
         </div>

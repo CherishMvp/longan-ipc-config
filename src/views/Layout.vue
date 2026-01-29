@@ -20,7 +20,7 @@ const menuItems = [
       <!-- Logo Area -->
       <div class="h-14 flex items-center gap-2 px-6 border-b">
         <div class="w-5 h-5 bg-primary rounded-sm flex items-center justify-center text-[10px] text-primary-foreground font-bold">S</div>
-        <span class="font-bold text-sm tracking-tight">传感器配置工具</span>
+        <span class="font-bold text-sm tracking-tight">Longan 聚合工具箱</span>
       </div>
 
       <!-- Navigation -->

@@ -3,7 +3,20 @@ import { join, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { initDB } from './db'
 import { startDiscovery, stopDiscovery } from './discovery'
-import { getNetworkSettings, setNetworkSettings } from './onvif'
+import { 
+  getNetworkSettings, 
+  setNetworkSettings, 
+  getDeviceInformation, 
+  systemReboot, 
+  getNetworkProtocols, 
+  setUser,
+  getSystemDateAndTime,
+  setSystemDateAndTime,
+  getSnapshotUri,
+  fetchSnapshot,
+  getStreamUri
+} from './onvif'
+import { initUpdater } from './updater'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = dirname(__filename)
@@ -31,6 +44,8 @@ const createWindow = () => {
 
   mainWindow.once('ready-to-show', () => {
     mainWindow?.show()
+    // Initialize Updater
+    if (mainWindow) initUpdater(mainWindow)
   })
 
   if (process.env.VITE_DEV_SERVER_URL) {
@@ -184,6 +199,79 @@ ipcMain.handle('onvif-set-network', async (_event, { url, token, config, usernam
   try {
     await setNetworkSettings(url, token, config, username, password)
     return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('onvif-get-device-info', async (_event, { url, username, password }) => {
+  try {
+    const result = await getDeviceInformation(url, username, password)
+    return { success: true, info: result }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('onvif-reboot', async (_event, { url, username, password }) => {
+  try {
+    const msg = await systemReboot(url, username, password)
+    return { success: true, message: msg }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('onvif-get-protocols', async (_event, { url, username, password }) => {
+  try {
+    const result = await getNetworkProtocols(url, username, password)
+    return { success: true, protocols: result }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('onvif-set-user', async (_event, { url, targetUsername, newPassword, username, password }) => {
+  try {
+    await setUser(url, targetUsername, newPassword, username, password)
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('onvif-get-time', async (_event, { url, username, password }) => {
+  try {
+    const result = await getSystemDateAndTime(url, username, password)
+    return { success: true, ...result }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('onvif-set-time', async (_event, { url, username, password }) => {
+  try {
+    await setSystemDateAndTime(url, username, password)
+    return { success: true }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('onvif-get-snapshot', async (_event, { url, username, password }) => {
+  try {
+    const uri = await getSnapshotUri(url, username, password)
+    const dataUrl = await fetchSnapshot(uri, username, password)
+    return { success: true, dataUrl }
+  } catch (error: any) {
+    return { success: false, error: error.message }
+  }
+})
+
+ipcMain.handle('onvif-get-stream-uri', async (_event, { url, protocol, username, password }) => {
+  try {
+    const result = await getStreamUri(url, protocol, username, password)
+    return { success: true, ...result }
   } catch (error: any) {
     return { success: false, error: error.message }
   }

@@ -1,7 +1,11 @@
 {
   "name": "sensor-config-tools",
-  "version": "1.0.4",
-  "description": "传感器配置工具集 - IPC设备气体配置管理",
+  "version": "0.0.1",
+  "description": "Longan Aggregate Tools - IPC, Sensor Management & Utilities",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CherishMvp/longan-ipc-config.git"
+  },
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -22,14 +26,11 @@
   },
   "build": {
     "appId": "com.sensor.config-tools",
-    "productName": "传感器配置工具",
+    "productName": "Longan Tools",
     "executableName": "sensor-config-tools",
     "copyright": "Copyright © 2025",
     "asar": true,
     "compression": "maximum",
-    "publish": [
-      "github"
-    ],
     "electronLanguages": [
       "zh-CN",
       "en"
@@ -81,7 +82,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "传感器配置工具",
+      "shortcutName": "Longan工具箱",
       "deleteAppDataOnUninstall": true,
       "allowElevation": true,
       "unicode": true
@@ -94,6 +95,8 @@
     "better-sqlite3": "^12.6.2",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
+    "electron-log": "^5.4.3",
+    "electron-updater": "^6.7.3",
     "fs-extra": "^11.3.3",
     "lucide-vue-next": "^0.460.0",
     "pinia": "^2.2.6",

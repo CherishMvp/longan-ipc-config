@@ -47,6 +47,20 @@ export interface ElectronAPI {
   // Onvif
   getNetworkSettings: (params: { url: string, username?: string, password?: string }) => Promise<{ success: boolean; token?: string; config?: any; error?: string }>
   setNetworkSettings: (params: { url: string, token: string, config: any, username?: string, password?: string }) => Promise<{ success: boolean; error?: string }>
+  getDeviceInformation: (params: { url: string, username?: string, password?: string }) => Promise<{ success: boolean; info?: any; error?: string }>
+  getNetworkProtocols: (params: { url: string, username?: string, password?: string }) => Promise<{ success: boolean; protocols?: { http: number, rtsp: number }; error?: string }>
+  setUser: (params: { url: string, targetUsername: string, newPassword: string, username?: string, password?: string }) => Promise<{ success: boolean; error?: string }>
+  getTime: (params: { url: string, username?: string, password?: string }) => Promise<{ success: boolean; type?: string; displayTime?: string; error?: string }>
+  setTime: (params: { url: string, username?: string, password?: string }) => Promise<{ success: boolean; error?: string }>
+  reboot: (params: { url: string, username?: string, password?: string }) => Promise<{ success: boolean; message?: string; error?: string }>
+  getSnapshot: (params: { url: string, username?: string, password?: string }) => Promise<{ success: boolean; dataUrl?: string; error?: string }>
+  getStreamUri: (params: { url: string, protocol?: string, username?: string, password?: string }) => Promise<{ success: boolean; uri?: string; encoding?: string; error?: string }>
+
+  // Updater
+  checkForUpdates: () => Promise<{ success: boolean; result?: any; error?: string }>
+  quitAndInstall: () => Promise<void>
+  onUpdaterMessage: (callback: (msg: { type: string, msg: string, info?: any }) => void) => void
+  onUpdaterProgress: (callback: (progress: any) => void) => void
 
   platform: string
   versions: {

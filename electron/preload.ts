@@ -31,6 +31,20 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // Onvif
   getNetworkSettings: (params: any) => ipcRenderer.invoke('onvif-get-network', params),
   setNetworkSettings: (params: any) => ipcRenderer.invoke('onvif-set-network', params),
+  getDeviceInformation: (params: any) => ipcRenderer.invoke('onvif-get-device-info', params),
+  getNetworkProtocols: (params: any) => ipcRenderer.invoke('onvif-get-protocols', params),
+  setUser: (params: any) => ipcRenderer.invoke('onvif-set-user', params),
+  getTime: (params: any) => ipcRenderer.invoke('onvif-get-time', params),
+  setTime: (params: any) => ipcRenderer.invoke('onvif-set-time', params),
+  reboot: (params: any) => ipcRenderer.invoke('onvif-reboot', params),
+  getSnapshot: (params: any) => ipcRenderer.invoke('onvif-get-snapshot', params),
+  getStreamUri: (params: any) => ipcRenderer.invoke('onvif-get-stream-uri', params),
+
+  // Updater
+  checkForUpdates: () => ipcRenderer.invoke('check-for-update'),
+  quitAndInstall: () => ipcRenderer.invoke('quit-and-install'),
+  onUpdaterMessage: (callback: any) => ipcRenderer.on('updater-message', (_event, value) => callback(value)),
+  onUpdaterProgress: (callback: any) => ipcRenderer.on('updater-progress', (_event, value) => callback(value)),
 
   platform: process.platform,
   versions: process.versions

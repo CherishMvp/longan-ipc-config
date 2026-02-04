@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterView, RouterLink, useRoute } from 'vue-router'
 import { useDeviceStore } from '@/stores/device'
-import { Home, Settings2 } from 'lucide-vue-next'
+import { Home, Settings2, Wifi } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const route = useRoute()
@@ -9,6 +9,7 @@ const store = useDeviceStore()
 
 const menuItems = [
   { path: '/', name: '首页', icon: Home },
+  { path: '/discovery', name: '设备自动发现', icon: Wifi },
   { path: '/gas-config', name: 'IPC气体配置', icon: Settings2 }
 ]
 </script>
@@ -19,8 +20,8 @@ const menuItems = [
     <aside class="w-60 border-r bg-card flex flex-col transition-all duration-300 ease-in-out">
       <!-- Logo Area -->
       <div class="h-14 flex items-center gap-2 px-6 border-b">
-        <div class="w-5 h-5 bg-primary rounded-sm flex items-center justify-center text-[10px] text-primary-foreground font-bold">S</div>
-        <span class="font-bold text-sm tracking-tight">Longan 聚合工具箱</span>
+        <div class="w-5 h-5 bg-primary rounded-sm flex items-center justify-center text-[10px] text-primary-foreground font-bold">L</div>
+        <span class="font-bold text-sm tracking-tight">Longan IPC Tools</span>
       </div>
 
       <!-- Navigation -->

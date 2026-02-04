@@ -31,20 +31,20 @@ const features = [
 
 const stats = [
   { 
-    label: 'Total Devices', 
+    label: '设备总数', 
     value: () => store.devices.length, 
     icon: Monitor,
     variant: 'default' as const
   },
   { 
-    label: 'Online', 
+    label: '在线设备', 
     value: () => store.devices.filter(d => d.status === 'online').length, 
     icon: Wifi,
     variant: 'success' as const, // Custom variant mapping needed or use class
     class: 'text-green-500 bg-green-500/10'
   },
   { 
-    label: 'Offline', 
+    label: '离线设备', 
     value: () => store.devices.filter(d => d.status === 'offline').length, 
     icon: WifiOff,
     variant: 'destructive' as const,
@@ -63,7 +63,7 @@ const stats = [
             <Cpu class="w-8 h-8" />
           </div>
           <div>
-            <h1 class="text-2xl font-bold tracking-tight mb-2">欢迎使用 Longan 聚合工具箱</h1>
+            <h1 class="text-2xl font-bold tracking-tight mb-2">欢迎使用 Longan IPC Tools</h1>
             <p class="text-primary-foreground/80 max-w-xl leading-relaxed">
               这是一个集成了多种实用工具的综合平台。包含 IPC 气体传感器配置、设备自动发现等功能，支持批量管理与实时监控。
             </p>
@@ -85,7 +85,7 @@ const stats = [
               <p class="text-sm font-medium text-muted-foreground mb-1">{{ stat.label }}</p>
               <div class="flex items-baseline gap-2">
                 <span class="text-3xl font-bold tracking-tight">{{ stat.value() }}</span>
-                <span class="text-xs text-muted-foreground" v-if="stat.label === 'Total Devices'">units</span>
+                <span class="text-xs text-muted-foreground" v-if="stat.label === '设备总数'">台</span>
               </div>
             </div>
             <div :class="['p-3 rounded-xl', stat.class || 'bg-primary/10 text-primary']">

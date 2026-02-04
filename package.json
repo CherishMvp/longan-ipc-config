@@ -1,5 +1,5 @@
 {
-  "name": "sensor-config-tools",
+  "name": "longan-ipc-tools",
   "version": "0.0.1",
   "description": "Longan Aggregate Tools - IPC, Sensor Management & Utilities",
   "repository": {
@@ -25,9 +25,9 @@
     ]
   },
   "build": {
-    "appId": "com.sensor.config-tools",
-    "productName": "Longan Tools",
-    "executableName": "sensor-config-tools",
+    "appId": "com.longan.ipc-tools",
+    "productName": "Longan IPC Tools",
+    "executableName": "longan-ipc-tools",
     "copyright": "Copyright © 2025",
     "asar": true,
     "compression": "maximum",
@@ -82,7 +82,7 @@
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "shortcutName": "Longan工具箱",
+      "shortcutName": "Longan IPC Tools",
       "deleteAppDataOnUninstall": true,
       "allowElevation": true,
       "unicode": true

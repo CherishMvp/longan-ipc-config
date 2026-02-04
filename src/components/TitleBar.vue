@@ -37,9 +37,9 @@ const closeApp = async () => {
     <!-- Drag Area -->
     <div class="flex-1 h-full flex items-center gap-2 px-3 text-xs font-medium text-muted-foreground drag-region">
       <div class="w-4 h-4 bg-primary rounded-sm flex items-center justify-center text-[8px] text-primary-foreground font-bold">
-        S
+        L
       </div>
-      <span>Longan 聚合工具箱</span>
+      <span>Longan IPC Tools</span>
     </div>
 
     <!-- Button Area -->

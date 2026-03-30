@@ -1,3 +1,7 @@
+
+let __unconfig_data;
+let __unconfig_stub = function (data = {}) { __unconfig_data = data };
+__unconfig_stub.default = (data = {}) => { __unconfig_data = data };
 import { defineConfig } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve } from 'path'
@@ -8,7 +12,7 @@ import electron from 'vite-plugin-electron'
 import electronRenderer from 'vite-plugin-electron-renderer'
 import fs from 'fs'
 
-export default defineConfig({
+const __unconfig_default =  defineConfig({
   plugins: [
     vue(),
     tailwindcss(),
@@ -31,9 +35,13 @@ export default defineConfig({
         vite: {
           build: {
             outDir: 'dist-electron',
-            minify: false,
             rollupOptions: {
-              external: ['electron', 'better-sqlite3', 'electron-log', 'electron-updater', 'ws', 'bufferutil', 'utf-8-validate'],
+              external: ['electron', 'better-sqlite3'],
+              output: {
+                format: 'cjs',
+                entryFileNames: 'main.js',
+                inlineDynamicImports: true
+              }
             },
             lib: {
               entry: 'electron/main.ts',
@@ -83,3 +91,5 @@ export default defineConfig({
     emptyOutDir: true
   }
 })
+
+if (typeof __unconfig_default === "function") __unconfig_default(...[{"command":"serve","mode":"development"}]);export default __unconfig_data;

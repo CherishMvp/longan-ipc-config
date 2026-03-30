@@ -1,6 +1,5 @@
 import { app, BrowserWindow, ipcMain, net, shell } from 'electron'
-import { join, dirname } from 'path'
-import { fileURLToPath } from 'url'
+import { join } from 'path'
 import { initDB } from './db'
 import { startDiscovery, stopDiscovery } from './discovery'
 import { 
@@ -17,11 +16,10 @@ import {
   getStreamUri
 } from './onvif'
 import { initUpdater } from './updater'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = dirname(__filename)
+import { StreamService } from './StreamService'
 
 let mainWindow: BrowserWindow | null = null
+const streamService = new StreamService()
 
 // Initialize Database
 const db = initDB()
@@ -70,17 +68,17 @@ ipcMain.handle('start-scan', (_event, options) => {
     return { success: true }
   }
   return { success: false, error: 'Main window not found' }
-})
+});
 
 ipcMain.handle('stop-scan', () => {
   stopDiscovery()
   return { success: true }
-})
+});
 
 // Database IPC
 ipcMain.handle('db-get-devices', () => {
   return db.prepare('SELECT * FROM devices ORDER BY created_at DESC').all()
-})
+});
 
 ipcMain.handle('db-add-device', (_event, device) => {
   try {
@@ -90,19 +88,19 @@ ipcMain.handle('db-add-device', (_event, device) => {
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-})
+});
 
 ipcMain.handle('db-remove-device', (_event, id) => {
   const stmt = db.prepare('DELETE FROM devices WHERE id = ?')
   stmt.run(id)
   return { success: true }
-})
+});
 
 ipcMain.handle('db-update-device-status', (_event, { id, status }) => {
   const stmt = db.prepare('UPDATE devices SET status = ? WHERE id = ?')
   stmt.run(status, id)
   return { success: true }
-})
+});
 
 ipcMain.handle('db-get-logs', (_event, limit = 100) => {
   const logs = db.prepare('SELECT * FROM logs ORDER BY created_at DESC LIMIT ?').all(limit)
@@ -110,7 +108,7 @@ ipcMain.handle('db-get-logs', (_event, limit = 100) => {
     ...log,
     data: log.data ? JSON.parse(log.data) : null
   }))
-})
+});
 
 ipcMain.handle('db-add-log', (_event, log) => {
   const stmt = db.prepare('INSERT INTO logs (type, message, data) VALUES (@type, @message, @data)')
@@ -119,12 +117,12 @@ ipcMain.handle('db-add-log', (_event, log) => {
     data: log.data ? JSON.stringify(log.data) : null
   })
   return { success: true }
-})
+});
 
 ipcMain.handle('db-clear-logs', () => {
   db.prepare('DELETE FROM logs').run()
   return { success: true }
-})
+});
 
 ipcMain.handle('db-save-config', (_event, config) => {
   const stmt = db.prepare('INSERT OR REPLACE INTO config (key, value) VALUES (?, ?)')
@@ -135,7 +133,7 @@ ipcMain.handle('db-save-config', (_event, config) => {
   })
   run(config)
   return { success: true }
-})
+});
 
 ipcMain.handle('db-get-config', () => {
   const rows = db.prepare('SELECT key, value FROM config').all() as {key: string, value: string}[]
@@ -144,7 +142,7 @@ ipcMain.handle('db-get-config', () => {
     config[row.key] = JSON.parse(row.value)
   }
   return config
-})
+});
 
 ipcMain.handle('http-request', async (_event, options: {
   url: string
@@ -183,7 +181,7 @@ ipcMain.handle('http-request', async (_event, options: {
       resolve({ success: false, error: error.message })
     }
   })
-})
+});
 
 // Onvif IPC
 ipcMain.handle('onvif-get-network', async (_event, { url, username, password }) => {
@@ -193,7 +191,7 @@ ipcMain.handle('onvif-get-network', async (_event, { url, username, password }) 
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-})
+});
 
 ipcMain.handle('onvif-set-network', async (_event, { url, token, config, username, password }) => {
   try {
@@ -202,7 +200,7 @@ ipcMain.handle('onvif-set-network', async (_event, { url, token, config, usernam
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-})
+});
 
 ipcMain.handle('onvif-get-device-info', async (_event, { url, username, password }) => {
   try {
@@ -211,7 +209,7 @@ ipcMain.handle('onvif-get-device-info', async (_event, { url, username, password
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-})
+});
 
 ipcMain.handle('onvif-reboot', async (_event, { url, username, password }) => {
   try {
@@ -220,7 +218,7 @@ ipcMain.handle('onvif-reboot', async (_event, { url, username, password }) => {
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-})
+});
 
 ipcMain.handle('onvif-get-protocols', async (_event, { url, username, password }) => {
   try {
@@ -229,7 +227,7 @@ ipcMain.handle('onvif-get-protocols', async (_event, { url, username, password }
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-})
+});
 
 ipcMain.handle('onvif-set-user', async (_event, { url, targetUsername, newPassword, username, password }) => {
   try {
@@ -238,7 +236,7 @@ ipcMain.handle('onvif-set-user', async (_event, { url, targetUsername, newPasswo
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-})
+});
 
 ipcMain.handle('onvif-get-time', async (_event, { url, username, password }) => {
   try {
@@ -247,7 +245,7 @@ ipcMain.handle('onvif-get-time', async (_event, { url, username, password }) => 
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-})
+});
 
 ipcMain.handle('onvif-set-time', async (_event, { url, username, password }) => {
   try {
@@ -256,7 +254,7 @@ ipcMain.handle('onvif-set-time', async (_event, { url, username, password }) => 
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-})
+});
 
 ipcMain.handle('onvif-get-snapshot', async (_event, { url, username, password }) => {
   try {
@@ -266,7 +264,7 @@ ipcMain.handle('onvif-get-snapshot', async (_event, { url, username, password })
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-})
+});
 
 ipcMain.handle('onvif-get-stream-uri', async (_event, { url, protocol, username, password }) => {
   try {
@@ -275,7 +273,10 @@ ipcMain.handle('onvif-get-stream-uri', async (_event, { url, protocol, username,
   } catch (error: any) {
     return { success: false, error: error.message }
   }
-})
+});
 
-app.whenReady().then(createWindow)
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
+app.whenReady().then(createWindow);
+app.on('window-all-closed', () => { 
+    streamService.stopAll();
+    if (process.platform !== "darwin") app.quit();
+});

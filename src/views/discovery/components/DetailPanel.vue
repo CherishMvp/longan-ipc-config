@@ -4,7 +4,6 @@ import {
   Card,
   CardHeader,
   CardTitle,
-  CardContent,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,7 +12,7 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
 import { 
-  Settings, X, Lock, Loader2, Info, Network, Wrench, ExternalLink, Power, Clock, Save
+  Settings, X, Lock, Loader2, Info, Network, Wrench, ExternalLink, Power, Clock, Save, RefreshCw
 } from 'lucide-vue-next'
 import type { DiscoveredDevice } from '@/types/electron'
 import LivePlayer from './LivePlayer.vue'
@@ -247,25 +246,21 @@ const handleToggleLive = async () => {
     const url = props.device.xaddrs || `http://${props.device.ip}/onvif/device_service`
     const creds = { url, username: loginForm.value.username, password: loginForm.value.password }
 
-    const streamRes = await window.electronAPI.getStreamUri({ ...creds, protocol: 'HTTP' })
-
-    if (streamRes.success && streamRes.uri && streamRes.encoding === 'JPEG') {
-      try {
-        const u = new URL(streamRes.uri)
-        if (loginForm.value.username) {
-            u.username = loginForm.value.username
-            u.password = loginForm.value.password
+    // HARDCODED URL FOR TESTING AS REQUESTED
+    const hardcodedRtspUrl = 'rtsp://192.168.2.177:554/avstream/channel=1/stream=0-mainstream.sdp'
+    
+    // Automatic auth injection for hardcoded URL
+    let rtspUrlWithAuth = hardcodedRtspUrl
+    if (loginForm.value.username && loginForm.value.password && !hardcodedRtspUrl.includes('@')) {
+        const parts = hardcodedRtspUrl.split('://')
+        if (parts.length === 2) {
+            rtspUrlWithAuth = `${parts[0]}://${loginForm.value.username}:${loginForm.value.password}@${parts[1]}`
         }
-        streamUrl.value = u.toString()
-        emit('log', '启动原生 MJPEG 流')
-      } catch (e) {
-        streamUrl.value = streamRes.uri
-      }
-    } else {
-      emit('log', streamRes.success ? `不支持编码: ${streamRes.encoding}，使用快照轮询` : '无法获取流，使用快照轮询')
-      handleFetchSnapshot()
-      liveInterval.value = setInterval(handleFetchSnapshot, 1000)
     }
+    
+    streamUrl.value = rtspUrlWithAuth
+    emit('log', `启动 WebSocket-FLV 直出流 (测试地址): ${rtspUrlWithAuth}`)
+    
   } catch (e: any) {
     emit('log', `直播失败: ${e.message}`)
     isLive.value = false

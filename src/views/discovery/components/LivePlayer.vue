@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, watch, computed, onUnmounted } from 'vue'
+import { ref, computed } from 'vue'
 import { Camera, Video, Loader2, Maximize, RefreshCw } from 'lucide-vue-next'
 import { useFullscreen } from '@vueuse/core'
+import MpegtsPlayer from '@/components/VideoPlayer/MpegtsPlayer.vue'
 
 const props = defineProps<{
   streamUrl?: string
@@ -19,6 +20,9 @@ const playerRef = ref<HTMLElement | null>(null)
 const { isFullscreen, toggle: toggleFullscreen } = useFullscreen(playerRef)
 
 const showControls = ref(false)
+
+const isRTSP = computed(() => props.streamUrl?.startsWith('rtsp://'))
+const isMJPEG = computed(() => props.isLive && props.streamUrl && !isRTSP.value)
 
 // Handle double click to fullscreen
 const handleDblClick = () => {
@@ -73,9 +77,16 @@ const handleDblClick = () => {
       :class="{'fixed inset-0 z-50 rounded-none h-screen w-screen': isFullscreen}"
       @dblclick="handleDblClick"
     >
+      <!-- WebSocket Stream for RTSP (using mpegts.js) -->
+      <MpegtsPlayer 
+        v-if="isLive && isRTSP && streamUrl"
+        :stream-url="streamUrl"
+        class="w-full h-full"
+      />
+
       <!-- MJPEG Stream / Live -->
       <img 
-        v-if="isLive && streamUrl" 
+        v-else-if="isMJPEG && streamUrl" 
         :src="streamUrl" 
         class="w-full h-full object-contain" 
         alt="Live Stream"
@@ -91,7 +102,7 @@ const handleDblClick = () => {
       
       <!-- Loading State -->
       <div 
-        v-if="isLoading" 
+        v-if="isLoading && !isLive" 
         class="absolute inset-0 flex flex-col items-center justify-center bg-black/50 text-white backdrop-blur-sm"
       >
         <Loader2 class="w-8 h-8 animate-spin mb-2" />
@@ -122,3 +133,11 @@ const handleDblClick = () => {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* Ensure the player covers the container */
+:deep(.mpegts-player) {
+  width: 100%;
+  height: 100%;
+}
+</style>

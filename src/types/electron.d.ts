@@ -56,6 +56,14 @@ export interface ElectronAPI {
   getSnapshot: (params: { url: string, username?: string, password?: string }) => Promise<{ success: boolean; dataUrl?: string; error?: string }>
   getStreamUri: (params: { url: string, protocol?: string, username?: string, password?: string }) => Promise<{ success: boolean; uri?: string; encoding?: string; error?: string }>
 
+  // WebRTC
+  webrtcPlay: (params: { rtspUrl: string }) => Promise<{ success: boolean; error?: string }>
+  webrtcAnswer: (params: { sdp: string, type: string }) => Promise<{ success: boolean }>
+  webrtcAddCandidate: (params: { candidate: string, mid: string }) => Promise<{ success: boolean }>
+  webrtcStop: () => Promise<{ success: boolean }>
+  onWebRTCOffer: (callback: (data: { sdp: string, type: string }) => void) => () => void
+  onWebRTCCandidate: (callback: (data: { candidate: string, mid: string }) => void) => () => void
+
   // Updater
   checkForUpdates: () => Promise<{ success: boolean; result?: any; error?: string }>
   quitAndInstall: () => Promise<void>

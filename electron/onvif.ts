@@ -366,15 +366,22 @@ async function getProfiles(mediaUrl: string, username?: string, password?: strin
 }
 
 // 10. GetStreamUri (RTSP/HTTP)
-export async function getStreamUri(deviceUrl: string, protocol: 'UDP' | 'TCP' | 'HTTP' = 'HTTP', username?: string, password?: string): Promise<{ uri: string, profileToken: string, encoding: string } | null> {
+export async function getStreamUri(deviceUrl: string, protocol: 'UDP' | 'TCP' | 'HTTP' | 'RTSP' = 'HTTP', username?: string, password?: string): Promise<{ uri: string, profileToken: string, encoding: string } | null> {
   try {
     const mediaUrl = await getMediaUrl(deviceUrl, username, password)
     const profiles = await getProfiles(mediaUrl, username, password)
     
-    // Look for JPEG profile first for native browser support
-    let targetProfile = profiles.find((p: any) => p.VideoEncoderConfiguration?.Encoding === 'JPEG')
+    // Look for target profile
+    let targetProfile;
+    if (protocol === 'HTTP') {
+      // For HTTP (MJPEG), look for JPEG profile first
+      targetProfile = profiles.find((p: any) => p.VideoEncoderConfiguration?.Encoding === 'JPEG')
+    } else {
+      // For RTSP/WebRTC, look for H.264 profile first
+      targetProfile = profiles.find((p: any) => p.VideoEncoderConfiguration?.Encoding === 'H264')
+    }
     
-    // If no JPEG, fallback to first profile (usually H.264)
+    // If no specific match, fallback to first profile
     if (!targetProfile && profiles.length > 0) targetProfile = profiles[0]
     
     if (!targetProfile) throw new Error('No profiles found')

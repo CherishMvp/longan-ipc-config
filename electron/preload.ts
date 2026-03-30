@@ -40,6 +40,22 @@ contextBridge.exposeInMainWorld('electronAPI', {
   getSnapshot: (params: any) => ipcRenderer.invoke('onvif-get-snapshot', params),
   getStreamUri: (params: any) => ipcRenderer.invoke('onvif-get-stream-uri', params),
 
+  // WebRTC
+  webrtcPlay: (params: any) => ipcRenderer.invoke('webrtc-play', params),
+  webrtcAnswer: (params: any) => ipcRenderer.invoke('webrtc-answer', params),
+  webrtcAddCandidate: (params: any) => ipcRenderer.invoke('webrtc-add-candidate', params),
+  webrtcStop: () => ipcRenderer.invoke('webrtc-stop'),
+  onWebRTCOffer: (callback: any) => {
+    const subscription = (_event: any, value: any) => callback(value)
+    ipcRenderer.on('webrtc-offer', subscription)
+    return () => ipcRenderer.removeListener('webrtc-offer', subscription)
+  },
+  onWebRTCCandidate: (callback: any) => {
+    const subscription = (_event: any, value: any) => callback(value)
+    ipcRenderer.on('webrtc-candidate', subscription)
+    return () => ipcRenderer.removeListener('webrtc-candidate', subscription)
+  },
+
   // Updater
   checkForUpdates: () => ipcRenderer.invoke('check-for-update'),
   quitAndInstall: () => ipcRenderer.invoke('quit-and-install'),

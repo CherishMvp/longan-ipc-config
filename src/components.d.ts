@@ -45,6 +45,7 @@ declare module 'vue' {
     DropdownMenuSubTrigger: typeof import('./components/ui/dropdown-menu/DropdownMenuSubTrigger.vue')['default']
     DropdownMenuTrigger: typeof import('./components/ui/dropdown-menu/DropdownMenuTrigger.vue')['default']
     Input: typeof import('./components/ui/input/Input.vue')['default']
+    MpegtsPlayer: typeof import('./components/VideoPlayer/MpegtsPlayer.vue')['default']
     Progress: typeof import('./components/ui/progress/Progress.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']
     RouterView: typeof import('vue-router')['RouterView']
@@ -70,5 +71,6 @@ declare module 'vue' {
     TooltipProvider: typeof import('./components/ui/tooltip/TooltipProvider.vue')['default']
     TooltipTrigger: typeof import('./components/ui/tooltip/TooltipTrigger.vue')['default']
     UpdateChecker: typeof import('./components/UpdateChecker.vue')['default']
+    WebRTCPlayer: typeof import('./components/VideoPlayer/WebRTCPlayer.vue')['default']
   }
 }

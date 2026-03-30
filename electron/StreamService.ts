@@ -63,8 +63,11 @@ export class StreamService {
         const ffmpegPath = this.getFFmpegPath();
         const args = [
             '-rtsp_transport', 'tcp',
-            '-re', // Read input at native frame rate
             '-i', rtspUrl,
+            // Optimization for stability
+            '-probesize', '32',
+            '-analyzeduration', '0',
+            // Transcode settings
             '-c:v', 'libx264',
             '-preset', 'ultrafast',
             '-tune', 'zerolatency',
@@ -72,7 +75,7 @@ export class StreamService {
             '-level', '3.0',
             '-s', '1280x720',
             '-b:v', '1500k',
-            '-g', '30',
+            '-g', '60', // More frequent keyframes for faster recovery
             '-an',
             '-f', 'flv',
             'pipe:1'

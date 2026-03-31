@@ -30,15 +30,15 @@ export class WVPApiService {
   }
 
   async login(username: string, password: string): Promise<string> {
-    const res = await fetch(`${this.baseUrl}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password })
+    // GET 请求，参数通过 query 传递
+    const res = await fetch(`${this.baseUrl}/api/v1/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+      method: 'GET'
     })
     
     if (!res.ok) throw new Error(`Login failed: ${res.statusText}`)
     
     const data = await res.json()
+    // WVP 返回格式：{ code: 0, data: { token: 'xxx', ... } }
     this.token = data.data?.token || data.token || ''
     if (!this.token) throw new Error('No token received')
     return this.token
@@ -52,6 +52,7 @@ export class WVPApiService {
   }
 
   async getDevices(): Promise<WVPDevice[]> {
+    // GET /api/v1/device/list
     const res = await fetch(`${this.baseUrl}/api/v1/device/list`, {
       headers: this.getAuthHeaders()
     })
@@ -59,11 +60,12 @@ export class WVPApiService {
     if (!res.ok) throw new Error(`Get devices failed: ${res.statusText}`)
     
     const data = await res.json()
+    // 返回格式：{ code: 0, data: { list: [...], total: 0 } }
     return data.data?.list || data.list || []
   }
 
   async getChannels(deviceId: string): Promise<WVPChannel[]> {
-    const res = await fetch(`${this.baseUrl}/api/v1/device/channels?deviceId=${deviceId}`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/device/channellist?deviceId=${encodeURIComponent(deviceId)}`, {
       headers: this.getAuthHeaders()
     })
     
@@ -76,25 +78,26 @@ export class WVPApiService {
   async getPlayUrl(
     deviceId: string, 
     channelId: string, 
-    protocol: Protocol = 'http-flv'
+    _protocol: Protocol = 'http-flv'
   ): Promise<string> {
-    const res = await fetch(`${this.baseUrl}/api/v1/play/${deviceId}/${channelId}`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ protocol })
+    // 使用 bus/localMedia/playMediaBase 接口
+    const sn = `${deviceId}:${channelId}`
+    const res = await fetch(`${this.baseUrl}/bus/localMedia/playMediaBase?sn=${encodeURIComponent(sn)}&fileId=&fileUrl=`, {
+      method: 'GET',
+      headers: this.getAuthHeaders()
     })
     
     if (!res.ok) throw new Error(`Get play URL failed: ${res.statusText}`)
     
     const data = await res.json()
-    return data.data?.url || data.url
+    // 需要从返回数据中提取播放地址
+    return data.data?.url || data.data?.playUrl || ''
   }
 
   async stopPlay(deviceId: string, channelId: string): Promise<void> {
-    await fetch(`${this.baseUrl}/api/v1/play/stop`, {
-      method: 'POST',
-      headers: this.getAuthHeaders(),
-      body: JSON.stringify({ deviceId, channelId })
+    await fetch(`${this.baseUrl}/bus/localMedia/stopMedia/${deviceId}_${channelId}`, {
+      method: 'PUT',
+      headers: this.getAuthHeaders()
     })
   }
 
@@ -104,10 +107,11 @@ export class WVPApiService {
     command: string,
     speed: number = 50
   ): Promise<void> {
-    await fetch(`${this.baseUrl}/api/v1/ptz/${deviceId}/${channelId}`, {
+    // 需要根据实际 API 调整
+    await fetch(`${this.baseUrl}/api/v1/device/ptz`, {
       method: 'POST',
       headers: this.getAuthHeaders(),
-      body: JSON.stringify({ command, speed })
+      body: JSON.stringify({ deviceId, channelId, command, speed })
     })
   }
 }

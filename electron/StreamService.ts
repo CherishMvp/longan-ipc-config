@@ -6,7 +6,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 export class StreamService {
     private wss: WebSocketServer | null = null;
-    private sessions: Map<string, { ffmpeg: ChildProcess, lastDataTime: number }> = new Map();
+    private sessions: Map<string, { ffmpeg: ChildProcess, ws: WebSocket, lastDataTime: number }> = new Map();
     private port: number = 9999; 
 
     constructor() {
@@ -69,7 +69,7 @@ export class StreamService {
         const args = [
             '-rtsp_transport', 'tcp',
             '-rtsp_flags', 'prefer_tcp',
-            '-fflags', '+genpts+discardcorrupt+nobuffer', // 时间戳修复与坏包丢弃 (VLC 风格)
+            '-fflags', '+genpts+discardcorrupt', // 时间戳修复与坏包丢弃 (VLC 风格)
             '-i', rtspUrl,
             '-probesize', '1024k', 
             '-analyzeduration', '2000000', 
@@ -90,7 +90,7 @@ export class StreamService {
         ];
 
         const ffmpeg = spawn(ffmpegPath, args, { windowsHide: true });
-        this.sessions.set(sessionId, { ffmpeg, lastDataTime: Date.now() });
+        this.sessions.set(sessionId, { ffmpeg, ws, lastDataTime: Date.now() });
 
         ffmpeg.stdout.on('data', (data) => {
             const session = this.sessions.get(sessionId);
@@ -115,13 +115,17 @@ export class StreamService {
     }
 
     private startHealthCheck() {
-        // 每 5 秒检查一次流状态，如果发现 FFmpeg 还在跑但没数据吐出来，强制重启
+        // 每 5 秒检查一次流状态，如果 FFmpeg 还在跑但没数据吐出来，强制重启
         setInterval(() => {
             const now = Date.now();
             this.sessions.forEach((session, id) => {
                 if (now - session.lastDataTime > 5000) {
-                    this.log(id, 'Stream stalled (No data for 5s), killing for restart...');
+                    this.log(id, 'Stream stalled (No data for 5s), forcing client reconnect...');
                     session.ffmpeg.kill('SIGKILL');
+                    // 主动断开 WebSocket，触发前端重连
+                    if (session.ws.readyState === WebSocket.OPEN) {
+                        session.ws.close();
+                    }
                 }
             });
         }, 5000);

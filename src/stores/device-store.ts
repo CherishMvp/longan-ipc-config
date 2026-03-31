@@ -36,9 +36,8 @@ export const useDeviceStore = defineStore('devices', {
   actions: {
     initializeWVP(baseUrl: string, token: string) {
       this.wvpApi = new WVPApiService(baseUrl)
-      // Set token directly - using any to bypass type checking
-      const api = this.wvpApi as any
-      api.token = token
+      // Set token
+      this.wvpApi.token = token
       this.protocolManager = new StreamProtocolManager(this.wvpApi)
     },
 

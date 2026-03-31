@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import mpegts from 'mpegts.js'
 
 const props = defineProps<{
@@ -48,7 +48,7 @@ const initPlayer = async (isReconnect = false) => {
 
     player.attachMediaElement(videoRef.value)
     
-    player.on(mpegts.Events.ERROR, (type, details, data) => {
+    player.on(mpegts.Events.ERROR, (_type, details, _data) => {
         console.warn(`[VLC-Mode] Recoverable error: ${details}, retrying...`)
         handleSilentReconnect()
     })

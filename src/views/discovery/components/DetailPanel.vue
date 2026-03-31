@@ -244,7 +244,6 @@ const handleToggleLive = async () => {
   
   try {
     const url = props.device.xaddrs || `http://${props.device.ip}/onvif/device_service`
-    const creds = { url, username: loginForm.value.username, password: loginForm.value.password }
 
     // HARDCODED URL FOR TESTING AS REQUESTED
     const hardcodedRtspUrl = 'rtsp://192.168.2.177:554/avstream/channel=1/stream=0-mainstream.sdp'

@@ -24,6 +24,12 @@ const routes: RouteRecordRaw[] = [
         name: 'DeviceDiscovery',
         component: () => import('@/views/discovery/index.vue'),
         meta: { title: '设备自动发现' }
+      },
+      {
+        path: 'video-wall',
+        name: 'VideoWall',
+        component: () => import('@/views/video/VideoWall.vue'),
+        meta: { title: '监控大屏' }
       }
     ]
   }

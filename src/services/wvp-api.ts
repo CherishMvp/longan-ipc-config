@@ -23,14 +23,14 @@ export interface PlayResponse {
 
 export class WVPApiService {
   private baseUrl: string
-  private token: string = ''
+  public token: string = ''
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl
   }
 
   async login(username: string, password: string): Promise<string> {
-    const res = await fetch(`${this.baseUrl}/api/v1/auth/login`, {
+    const res = await fetch(`${this.baseUrl}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
@@ -39,7 +39,8 @@ export class WVPApiService {
     if (!res.ok) throw new Error(`Login failed: ${res.statusText}`)
     
     const data = await res.json()
-    this.token = data.data.token
+    this.token = data.data?.token || data.token || ''
+    if (!this.token) throw new Error('No token received')
     return this.token
   }
 
@@ -51,25 +52,25 @@ export class WVPApiService {
   }
 
   async getDevices(): Promise<WVPDevice[]> {
-    const res = await fetch(`${this.baseUrl}/api/v1/devices`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/device/list`, {
       headers: this.getAuthHeaders()
     })
     
     if (!res.ok) throw new Error(`Get devices failed: ${res.statusText}`)
     
     const data = await res.json()
-    return data.data.list || []
+    return data.data?.list || data.list || []
   }
 
   async getChannels(deviceId: string): Promise<WVPChannel[]> {
-    const res = await fetch(`${this.baseUrl}/api/v1/devices/${deviceId}/channels`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/device/channels?deviceId=${deviceId}`, {
       headers: this.getAuthHeaders()
     })
     
     if (!res.ok) throw new Error(`Get channels failed: ${res.statusText}`)
     
     const data = await res.json()
-    return data.data.list || []
+    return data.data?.list || data.list || []
   }
 
   async getPlayUrl(
@@ -86,7 +87,7 @@ export class WVPApiService {
     if (!res.ok) throw new Error(`Get play URL failed: ${res.statusText}`)
     
     const data = await res.json()
-    return data.data.url
+    return data.data?.url || data.url
   }
 
   async stopPlay(deviceId: string, channelId: string): Promise<void> {

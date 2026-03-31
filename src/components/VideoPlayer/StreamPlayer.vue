@@ -40,6 +40,13 @@ onUnmounted(() => {
 })
 
 async function initPlayer() {
+  // 如果没有播放地址，不尝试播放
+  if (!props.playUrl) {
+    console.warn('[StreamPlayer] No playUrl provided')
+    isConnecting.value = false
+    return
+  }
+
   try {
     isConnecting.value = true
     isError.value = false
@@ -57,7 +64,7 @@ async function initPlayer() {
       liveBufferLatencyMaxLatency: props.priority === 'high' ? 2.0 : 5.0
     })
 
-    player.attachMediaElement(videoRef.value)
+    player.attachMediaElement(videoRef.value as any)
     
     player.on(mpegts.Events.ERROR, handlePlayerError)
     player.on(mpegts.Events.STATISTICS_INFO, updateSignalQuality)

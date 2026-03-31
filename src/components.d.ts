@@ -7,6 +7,14 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    AlertDialog: typeof import('./components/ui/alert-dialog/AlertDialog.vue')['default']
+    AlertDialogAction: typeof import('./components/ui/alert-dialog/AlertDialogAction.vue')['default']
+    AlertDialogContent: typeof import('./components/ui/alert-dialog/AlertDialogContent.vue')['default']
+    AlertDialogDescription: typeof import('./components/ui/alert-dialog/AlertDialogDescription.vue')['default']
+    AlertDialogFooter: typeof import('./components/ui/alert-dialog/AlertDialogFooter.vue')['default']
+    AlertDialogHeader: typeof import('./components/ui/alert-dialog/AlertDialogHeader.vue')['default']
+    AlertDialogTitle: typeof import('./components/ui/alert-dialog/AlertDialogTitle.vue')['default']
+    AlertDialogTrigger: typeof import('./components/ui/alert-dialog/AlertDialogTrigger.vue')['default']
     Avatar: typeof import('./components/ui/avatar/Avatar.vue')['default']
     AvatarFallback: typeof import('./components/ui/avatar/AvatarFallback.vue')['default']
     AvatarImage: typeof import('./components/ui/avatar/AvatarImage.vue')['default']
@@ -63,6 +71,8 @@ declare module 'vue' {
     SelectTrigger: typeof import('./components/ui/select/SelectTrigger.vue')['default']
     SelectValue: typeof import('./components/ui/select/SelectValue.vue')['default']
     Separator: typeof import('./components/ui/separator/Separator.vue')['default']
+    Skeleton: typeof import('./components/ui/skeleton/Skeleton.vue')['default']
+    StreamPlayer: typeof import('./components/VideoPlayer/StreamPlayer.vue')['default']
     Switch: typeof import('./components/ui/switch/Switch.vue')['default']
     ThemeToggle: typeof import('./components/ThemeToggle.vue')['default']
     TitleBar: typeof import('./components/TitleBar.vue')['default']

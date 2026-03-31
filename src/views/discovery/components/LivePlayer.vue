@@ -84,7 +84,7 @@ const handleDblClick = () => {
         v-if="isLive && isRTSP && streamUrl"
         :device-id="deviceId || 'unknown'"
         :channel-id="channelId || 'unknown'"
-        :priority="normal"
+        :priority="'normal'"
         :play-url="streamUrl"
       />
 

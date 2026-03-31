@@ -23,6 +23,7 @@ const signalQuality = ref<'good' | 'fair' | 'poor'>('good')
 const isConnecting = ref(true)
 const isError = ref(false)
 const retryCount = ref(0)
+const hasShownError = ref(false) // 记录是否已显示过错误
 
 const bufferConfig = computed(() => {
   if (props.priority === 'high') return { stashInitialSize: 2048 }
@@ -79,9 +80,8 @@ async function initPlayer() {
 }
 
 function handlePlayerError() {
-  if (retryCount.value >= 10) {
-    isError.value = true
-    emit('error', new Error('Max retries exceeded'))
+  if (retryCount.value >= 10 || hasShownError.value) {
+    // 超过重试次数或已显示过错误，不再显示弹窗
     return
   }
   
@@ -163,8 +163,8 @@ function destroyPlayer() {
       </div>
     </div>
 
-    <!-- 错误提示 -->
-    <AlertDialog v-if="isError" :open="true">
+    <!-- 错误提示 - 只显示一次 -->
+    <AlertDialog v-if="isError && !hasShownError" :open="true">
       <AlertDialogContent class="max-w-sm">
         <AlertDialogHeader>
           <AlertDialogTitle>Stream Connection Failed</AlertDialogTitle>
@@ -173,7 +173,7 @@ function destroyPlayer() {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          <AlertDialogAction @click="retryCount = 0; initPlayer()">
+          <AlertDialogAction @click="hasShownError = true; isError = false; retryCount = 0; initPlayer()">
             Retry Now
           </AlertDialogAction>
         </AlertDialogFooter>

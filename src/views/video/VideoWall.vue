@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import StreamPlayer from '@/components/VideoPlayer/StreamPlayer.vue'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { useDeviceStore } from '@/stores/device-store'
 
 interface DeviceConfig {
   deviceId: string
@@ -11,20 +12,62 @@ interface DeviceConfig {
   playUrl: string
 }
 
-// 测试数据 - 实际使用时从 WVP API 获取
-const testDevices: DeviceConfig[] = [
-  { deviceId: '1', channelId: '1', priority: 'high', playUrl: 'rtsp://192.168.2.177:554/avstream/channel=1/stream=0-mainstream.sdp' },
-  { deviceId: '2', channelId: '2', priority: 'normal', playUrl: '' },
-  { deviceId: '3', channelId: '3', priority: 'normal', playUrl: '' },
-  { deviceId: '4', channelId: '4', priority: 'normal', playUrl: '' },
-]
-
+const store = useDeviceStore()
+const devices = ref<DeviceConfig[]>([])
+const loading = ref(true)
 const layout = ref<'3x3' | '4x4'>('3x3')
 
 const gridClass = computed(() => ({
   'grid-cols-3': layout.value === '3x3',
   'grid-cols-4': layout.value === '4x4'
 }))
+
+// 从 WVP 获取设备列表
+async function loadDevices() {
+  try {
+    loading.value = true
+    // 初始化 WVP API
+    if (!store.wvpApi) {
+      store.initializeWVP('http://192.168.2.38:18080', '')
+    }
+    
+    // 登录获取 token
+    const token = await store.wvpApi.login('admin', 'admin')
+    console.log('WVP Login success, token:', token)
+    
+    // 获取设备列表
+    const wvpDevices = await store.wvpApi.getDevices()
+    console.log('WVP Devices:', wvpDevices)
+    
+    // 转换为播放器需要的格式
+    devices.value = wvpDevices.flatMap(device =>
+      device.channels.map(channel => ({
+        deviceId: device.deviceId,
+        channelId: channel.channelId,
+        name: channel.name,
+        priority: 'normal' as const,
+        playUrl: '' // 初始为空，点击播放时再获取
+      }))
+    )
+    
+    console.log('Converted devices:', devices.value)
+  } catch (error) {
+    console.error('Failed to load WVP devices:', error)
+    // 使用测试数据
+    devices.value = [
+      { deviceId: '1', channelId: '1', priority: 'high', playUrl: '' },
+      { deviceId: '2', channelId: '2', priority: 'normal', playUrl: '' },
+      { deviceId: '3', channelId: '3', priority: 'normal', playUrl: '' },
+      { deviceId: '4', channelId: '4', priority: 'normal', playUrl: '' },
+    ]
+  } finally {
+    loading.value = false
+  }
+}
+
+onMounted(() => {
+  loadDevices()
+})
 </script>
 
 <template>
@@ -42,16 +85,24 @@ const gridClass = computed(() => ({
             <SelectItem value="4x4">4×4 (16 路)</SelectItem>
           </SelectContent>
         </Select>
-        <Button variant="outline" size="sm">
-          Fullscreen
+        <Button variant="outline" size="sm" @click="loadDevices" :loading="loading">
+          Refresh
         </Button>
       </div>
     </div>
 
+    <!-- 加载中 -->
+    <div v-if="loading" class="flex items-center justify-center h-64">
+      <div class="flex flex-col items-center gap-2">
+        <div class="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <span class="text-sm text-muted-foreground">Loading devices from WVP...</span>
+      </div>
+    </div>
+
     <!-- 视频网格 -->
-    <div :class="['grid gap-3', gridClass]">
+    <div v-else :class="['grid gap-3', gridClass]">
       <StreamPlayer
-        v-for="(device, index) in testDevices"
+        v-for="(device, index) in devices"
         :key="index"
         :device-id="device.deviceId"
         :channel-id="device.channelId"

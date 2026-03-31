@@ -73,6 +73,56 @@ async function loadDevices() {
             channelId: channel.channelId,
             name: channel.name,
             priority: 'normal' as const,
+            playUrl: '' // 初始为空，下面会设置固定地址
+          })
+        })
+      } catch (err) {
+        console.error(`Failed to get channels for ${device.deviceId}:`, err)
+      }
+    }
+    
+    // 给前 9 台设备设置固定的播放地址
+    const fixedPlayUrl = 'ws://192.168.2.38/rtp/41010500001320000177_41010500001320000177.live.flv?originTypeStr=rtp_push'
+    allDevices.slice(0, 9).forEach((device, index) => {
+      device.playUrl = fixedPlayUrl
+      console.log(`Set play URL for device ${index + 1}:`, device.deviceId, device.channelId)
+    })
+    
+    devices.value = allDevices.slice(0, 16) // 限制最多 16 路
+    console.log('Converted devices:', devices.value)
+  } catch (error) {
+    console.error('Failed to load WVP devices:', error)
+    // 使用测试数据
+    devices.value = [
+      { deviceId: '1', channelId: '1', priority: 'high', playUrl: 'ws://192.168.2.38/rtp/41010500001320000177_41010500001320000177.live.flv?originTypeStr=rtp_push' },
+      { deviceId: '2', channelId: '2', priority: 'normal', playUrl: '' },
+      { deviceId: '3', channelId: '3', priority: 'normal', playUrl: '' },
+      { deviceId: '4', channelId: '4', priority: 'normal', playUrl: '' },
+    ]
+  } finally {
+    loading.value = false
+  }
+}
+    
+    // 登录获取 token - 密码 admin 的 MD5 (32 位小写)
+    const token = await store.wvpApi.login('admin', 'admin')
+    console.log('WVP Login success, token:', token)
+    
+    // 获取设备列表
+    const wvpDevices = await store.wvpApi.getDevices()
+    console.log('WVP Devices:', wvpDevices)
+    
+    // 获取每个设备的频道并转换格式
+    const allDevices: DeviceConfig[] = []
+    for (const device of wvpDevices) {
+      try {
+        const channels = await store.wvpApi!.getChannels(device.deviceId)
+        channels.forEach(channel => {
+          allDevices.push({
+            deviceId: device.deviceId,
+            channelId: channel.channelId,
+            name: channel.name,
+            priority: 'normal' as const,
             playUrl: '' // 初始为空，点击播放时再获取
           })
         })

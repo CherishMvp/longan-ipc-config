@@ -102,9 +102,11 @@ export class WVPApiService {
     channelId: string, 
     _protocol: Protocol = 'http-flv'
   ): Promise<string> {
-    // 使用 bus/localMedia/playMediaBase 接口
-    const sn = `${deviceId}:${channelId}`
-    const res = await fetch(`${this.baseUrl}/bus/localMedia/playMediaBase?sn=${encodeURIComponent(sn)}&fileId=&fileUrl=`, {
+    // 使用 /api/media/getPlayUrl 接口
+    // app 通常是 live，stream 是 deviceId_channelId
+    const app = 'live'
+    const stream = `${deviceId}_${channelId}`
+    const res = await fetch(`${this.baseUrl}/api/media/getPlayUrl?app=${encodeURIComponent(app)}&stream=${encodeURIComponent(stream)}`, {
       method: 'GET',
       headers: this.getAuthHeaders()
     })
@@ -113,7 +115,8 @@ export class WVPApiService {
     
     const data = await res.json()
     // 需要从返回数据中提取播放地址
-    return data.data?.url || data.data?.playUrl || ''
+    // WVP 返回格式可能包含 http-flv, ws-flv, hls 等地址
+    return data.data?.httpFlvUrl || data.data?.wsFlvUrl || data.data?.url || ''
   }
 
   async stopPlay(deviceId: string, channelId: string): Promise<void> {

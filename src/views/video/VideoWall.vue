@@ -73,7 +73,7 @@ async function loadDevices() {
             channelId: channel.channelId,
             name: channel.name,
             priority: 'normal' as const,
-            playUrl: '' // 初始为空，播放时再获取
+            playUrl: '' // 初始为空，点击播放时再获取
           })
         })
       } catch (err) {
@@ -94,6 +94,16 @@ async function loadDevices() {
     ]
   } finally {
     loading.value = false
+  }
+}
+
+// 处理播放器请求 URL 事件
+async function handleRequestUrl(deviceId: string, channelId: string, index: number) {
+  console.log(`Request URL for ${deviceId}/${channelId}`)
+  const url = await getPlayUrl(deviceId, channelId)
+  if (url) {
+    devices.value[index].playUrl = url
+    console.log(`Got URL for ${deviceId}/${channelId}:`, url)
   }
 }
 
@@ -140,6 +150,7 @@ onMounted(() => {
         :channel-id="device.channelId"
         :priority="device.priority"
         :play-url="device.playUrl"
+        @request-url="handleRequestUrl(device.deviceId, device.channelId, index)"
       />
     </div>
   </div>

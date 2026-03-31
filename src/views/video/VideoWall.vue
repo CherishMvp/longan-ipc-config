@@ -54,6 +54,40 @@ async function loadDevices() {
       store.initializeWVP('http://192.168.2.38:18080', '')
     }
     
+    // 登录获取 token - 使用 MD5 加密密码
+    const token = await store.wvpApi.login('admin', 'admin123') // TODO: 请替换为正确的密码
+    console.log('WVP Login success, token:', token)
+    
+    // 获取设备列表
+    const wvpDevices = await store.wvpApi.getDevices()
+    console.log('WVP Devices:', wvpDevices)
+    
+    // 转换为播放器需要的格式
+    devices.value = wvpDevices.flatMap(device =>
+      device.channels.map(channel => ({
+        deviceId: device.deviceId,
+        channelId: channel.channelId,
+        name: channel.name,
+        priority: 'normal' as const,
+        playUrl: '' // 初始为空，播放时再获取
+      }))
+    )
+    
+    console.log('Converted devices:', devices.value)
+  } catch (error) {
+    console.error('Failed to load WVP devices:', error)
+    // 使用测试数据
+    devices.value = [
+      { deviceId: '1', channelId: '1', priority: 'high', playUrl: '' },
+      { deviceId: '2', channelId: '2', priority: 'normal', playUrl: '' },
+      { deviceId: '3', channelId: '3', priority: 'normal', playUrl: '' },
+      { deviceId: '4', channelId: '4', priority: 'normal', playUrl: '' },
+    ]
+  } finally {
+    loading.value = false
+  }
+}
+    
     // 登录获取 token
     const token = await store.wvpApi.login('admin', 'admin')
     console.log('WVP Login success, token:', token)

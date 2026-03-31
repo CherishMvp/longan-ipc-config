@@ -32,26 +32,26 @@ export class WVPApiService {
   }
 
   async login(username: string, password: string): Promise<string> {
-    // WVP 需要 MD5 加密密码
+    // WVP 需要 MD5 加密密码 (32 位小写)
     const md5Password = CryptoJS.MD5(password).toString()
     
-    // GET 请求，参数通过 query 传递
-    const res = await fetch(`${this.baseUrl}/api/v1/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(md5Password)}`, {
+    // GET 请求到 /api/user/login，参数通过 query 传递
+    const res = await fetch(`${this.baseUrl}/api/user/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(md5Password)}`, {
       method: 'GET'
     })
     
     if (!res.ok) throw new Error(`Login failed: ${res.statusText}`)
     
     const data = await res.json()
-    // WVP 返回格式：{ code: 0, data: { token: 'xxx', ... } }
-    this.token = data.data?.token || data.token || ''
+    // WVP 返回格式：{ code: 0, data: { accessToken: 'xxx', ... } }
+    this.token = data.data?.accessToken || data.data?.token || data.token || ''
     if (!this.token) throw new Error('No token received')
     return this.token
   }
 
   private getAuthHeaders(): HeadersInit {
     return {
-      'Authorization': `Bearer ${this.token}`,
+      'access-token': this.token,
       'Content-Type': 'application/json'
     }
   }
@@ -65,19 +65,36 @@ export class WVPApiService {
     if (!res.ok) throw new Error(`Get devices failed: ${res.statusText}`)
     
     const data = await res.json()
-    // 返回格式：{ code: 0, data: { list: [...], total: 0 } }
-    return data.data?.list || data.list || []
+    // WVP 返回格式：{ DeviceCount: 0, DeviceList: [...] }
+    const deviceList = data.DeviceList || data.data?.list || data.list || []
+    
+    // 转换为 WVPDevice 格式
+    return deviceList.map((device: any) => ({
+      deviceId: device.ID || device.deviceId,
+      name: device.Name || device.name || 'Unknown',
+      status: device.Online ? 'online' : 'offline',
+      channels: [] // 需要单独获取
+    }))
   }
 
   async getChannels(deviceId: string): Promise<WVPChannel[]> {
-    const res = await fetch(`${this.baseUrl}/api/v1/device/channellist?deviceId=${encodeURIComponent(deviceId)}`, {
+    // GET /api/v1/device/channellist?serial={deviceId}
+    const res = await fetch(`${this.baseUrl}/api/v1/device/channellist?serial=${encodeURIComponent(deviceId)}`, {
       headers: this.getAuthHeaders()
     })
     
     if (!res.ok) throw new Error(`Get channels failed: ${res.statusText}`)
     
     const data = await res.json()
-    return data.data?.list || data.list || []
+    // WVP 返回格式：{ ChannelCount: 0, ChannelList: [...] }
+    const channelList = data.ChannelList || data.data?.list || data.list || []
+    
+    return channelList.map((channel: any) => ({
+      channelId: channel.ID || channel.channelId,
+      name: channel.Name || channel.name || 'Unknown',
+      status: channel.Online ? 'online' : 'offline',
+      streamType: channel.StreamType || 'H264'
+    }))
   }
 
   async getPlayUrl(

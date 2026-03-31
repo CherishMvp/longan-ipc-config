@@ -9,12 +9,13 @@ const props = defineProps<{
   deviceId: string
   channelId: string
   priority: 'high' | 'normal' | 'low'
-  playUrl: string
+  playUrl?: string  // 改为可选
 }>()
 
 const emit = defineEmits<{
   (e: 'error', error: Error): void
   (e: 'reconnect'): void
+  (e: 'request-url'): void  // 请求播放地址
 }>()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
@@ -24,6 +25,7 @@ const isConnecting = ref(true)
 const isError = ref(false)
 const retryCount = ref(0)
 const hasShownError = ref(false) // 记录是否已显示过错误
+const hasLoadedUrl = ref(false)  // 记录是否已加载过 URL
 
 const bufferConfig = computed(() => {
   if (props.priority === 'high') return { stashInitialSize: 2048 }
@@ -41,9 +43,16 @@ onUnmounted(() => {
 })
 
 async function initPlayer() {
-  // 如果没有播放地址，不尝试播放
+  // 如果没有播放地址且没有加载过，请求父组件获取
+  if (!props.playUrl && !hasLoadedUrl.value) {
+    hasLoadedUrl.value = true
+    emit('request-url')
+    isConnecting.value = false
+    return
+  }
+  
+  // 如果仍然没有地址，跳过
   if (!props.playUrl) {
-    console.warn('[StreamPlayer] No playUrl provided')
     isConnecting.value = false
     return
   }
@@ -75,6 +84,7 @@ async function initPlayer() {
   } catch (error) {
     console.error('Player init failed:', error)
     isError.value = true
+    hasShownError.value = true  // 不再显示错误
     emit('error', error as Error)
   }
 }

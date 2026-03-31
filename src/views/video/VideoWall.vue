@@ -8,6 +8,7 @@ import { useDeviceStore } from '@/stores/device-store'
 interface DeviceConfig {
   deviceId: string
   channelId: string
+  name?: string
   priority: 'high' | 'normal' | 'low'
   playUrl: string
 }
@@ -22,10 +23,32 @@ const gridClass = computed(() => ({
   'grid-cols-4': layout.value === '4x4'
 }))
 
+// 获取播放地址
+async function getPlayUrl(deviceId: string, channelId: string): Promise<string> {
+  try {
+    if (!store.wvpApi) {
+      store.initializeWVP('http://192.168.2.38:18080', '')
+    }
+    
+    // 确保已登录
+    if (!store.wvpApi.token) {
+      await store.wvpApi.login('admin', 'admin')
+    }
+    
+    const url = await store.wvpApi.getPlayUrl(deviceId, channelId, 'http-flv')
+    console.log(`Play URL for ${deviceId}/${channelId}:`, url)
+    return url
+  } catch (error) {
+    console.error('Failed to get play URL:', error)
+    return ''
+  }
+}
+
 // 从 WVP 获取设备列表
 async function loadDevices() {
   try {
     loading.value = true
+    
     // 初始化 WVP API
     if (!store.wvpApi) {
       store.initializeWVP('http://192.168.2.38:18080', '')
@@ -46,7 +69,7 @@ async function loadDevices() {
         channelId: channel.channelId,
         name: channel.name,
         priority: 'normal' as const,
-        playUrl: '' // 初始为空，点击播放时再获取
+        playUrl: '' // 初始为空，播放时再获取
       }))
     )
     

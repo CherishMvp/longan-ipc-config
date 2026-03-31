@@ -1,3 +1,5 @@
+import CryptoJS from 'crypto-js'
+
 export interface WVPDevice {
   deviceId: string
   name: string
@@ -30,8 +32,11 @@ export class WVPApiService {
   }
 
   async login(username: string, password: string): Promise<string> {
+    // WVP 需要 MD5 加密密码
+    const md5Password = CryptoJS.MD5(password).toString()
+    
     // GET 请求，参数通过 query 传递
-    const res = await fetch(`${this.baseUrl}/api/v1/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`, {
+    const res = await fetch(`${this.baseUrl}/api/v1/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(md5Password)}`, {
       method: 'GET'
     })
     

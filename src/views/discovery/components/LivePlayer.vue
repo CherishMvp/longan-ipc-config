@@ -2,13 +2,15 @@
 import { ref, computed } from 'vue'
 import { Camera, Video, Loader2, Maximize, RefreshCw } from 'lucide-vue-next'
 import { useFullscreen } from '@vueuse/core'
-import MpegtsPlayer from '@/components/VideoPlayer/MpegtsPlayer.vue'
+import StreamPlayer from '@/components/VideoPlayer/StreamPlayer.vue'
 
 const props = defineProps<{
   streamUrl?: string
   snapshotUrl?: string
   isLoading?: boolean
   isLive?: boolean
+  deviceId?: string
+  channelId?: string
 }>()
 
 const emit = defineEmits<{
@@ -77,11 +79,13 @@ const handleDblClick = () => {
       :class="{'fixed inset-0 z-50 rounded-none h-screen w-screen': isFullscreen}"
       @dblclick="handleDblClick"
     >
-      <!-- WebSocket Stream for RTSP (using mpegts.js) -->
-      <MpegtsPlayer 
+      <!-- WVP Stream Player (using mpegts.js) -->
+      <StreamPlayer 
         v-if="isLive && isRTSP && streamUrl"
-        :stream-url="streamUrl"
-        class="w-full h-full"
+        :device-id="deviceId || 'unknown'"
+        :channel-id="channelId || 'unknown'"
+        :priority="normal"
+        :play-url="streamUrl"
       />
 
       <!-- MJPEG Stream / Live -->

@@ -30,16 +30,18 @@ const hasShownError = ref(false) // 记录是否已显示过错误
 const hasLoadedUrl = ref(false)  // 记录是否已加载过 URL
 
 const bufferConfig = computed(() => {
-  if (props.priority === 'high') return { stashInitialSize: 2048 * 1024 }
-  if (props.priority === 'normal') return { stashInitialSize: 1024 * 1024 }
+  const priority = props.priority || 'normal'
+  if (priority === 'high') return { stashInitialSize: 2048 * 1024 }
+  if (priority === 'normal') return { stashInitialSize: 1024 * 1024 }
   return { stashInitialSize: 512 * 1024 }
 })
 
 // 暴露给健康监控的方法
 function getStats() {
+  const stats = player?.statisticsInfo as any
   return {
-    bitrate: player?.statisticsInfo?.speed || 0,
-    bufferedLength: player?.bufferedLength || 0
+    bitrate: stats?.speed || 0,
+    bufferedLength: (player as any)?.bufferedLength || 0
   }
 }
 
@@ -223,7 +225,7 @@ function destroyPlayer() {
     <div class="absolute bottom-0 left-0 right-0 p-2 bg-gradient-to-t from-black/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
       <div class="flex items-center justify-between text-[10px] text-white/70 font-mono">
         <span>{{ deviceId }}</span>
-        <span>{{ props.priority.toUpperCase() }}</span>
+        <span>{{ (props.priority || 'normal').toUpperCase() }}</span>
       </div>
     </div>
   </div>

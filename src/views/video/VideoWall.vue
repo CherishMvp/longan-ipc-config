@@ -1,12 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
-import { useDeviceStore } from '@/stores/device-store'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import StreamPlayer from '@/components/VideoPlayer/StreamPlayer.vue'
+import { useWVPStore } from '@/stores/device-store'
 
-const store = useDeviceStore()
+const store = useWVPStore()
 
 const loading = ref(false)
 const error = ref<string | null>(null)

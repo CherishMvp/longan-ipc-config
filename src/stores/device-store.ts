@@ -13,7 +13,7 @@ export interface SelectedChannel {
   reconnectCount: number
 }
 
-export const useDeviceStore = defineStore('device', () => {
+export const useWVPStore = defineStore('wvp', () => {
   const devices = ref<WVPDevice[]>([])
   const selectedChannels = ref<SelectedChannel[]>([])
   const currentLayout = ref<'3x3' | '4x4'>('3x3')

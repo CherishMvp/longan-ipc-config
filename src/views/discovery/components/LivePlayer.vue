@@ -86,6 +86,7 @@ const handleDblClick = () => {
         :channel-id="channelId || 'unknown'"
         :priority="'normal'"
         :play-url="streamUrl"
+        :player-index="0"
       />
 
       <!-- MJPEG Stream / Live -->

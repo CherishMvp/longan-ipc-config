@@ -23,13 +23,7 @@ const modules: { id: 'wvp' | 'onvif', name: string, icon: any }[] = [
 ]
 
 async function handleSaveWVP() {
-  const result = await settingsStore.saveWVPConfig()
-  
-  if (result.success) {
-    toast.success('WVP 配置已保存并生效')
-  } else {
-    toast.error(result.error || '保存失败')
-  }
+  await settingsStore.saveWVPConfig()
 }
 
 async function handleSaveONVIF() {

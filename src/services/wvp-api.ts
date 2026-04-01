@@ -14,6 +14,24 @@ export interface WVPChannel {
   streamType?: 'H264' | 'H265'
 }
 
+export interface StreamContent {
+  deviceId: string
+  channelId: string
+  stream: string
+  app: string
+  flv?: string
+  ws_flv?: string
+  hls?: string
+  fmp4?: string
+  rtmp?: string
+}
+
+export interface WVPResult<T> {
+  code: number
+  msg: string
+  data: T
+}
+
 export type Protocol = 'http-flv' | 'ws-flv' | 'webrtc'
 
 export interface PlayResponse {
@@ -26,6 +44,9 @@ export interface PlayResponse {
 export class WVPApiService {
   private baseUrl: string
   public token: string = ''
+  private tokenExpireTime: number = 0
+  private username: string = ''
+  private password: string = ''
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl

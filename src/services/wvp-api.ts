@@ -107,7 +107,8 @@ export class WVPApiService {
     return deviceList.map((device: any) => ({
       deviceId: device.ID || device.deviceId,
       name: device.Name || device.name || 'Unknown',
-      status: device.Online ? 'online' : 'offline',
+      // WVP 设备状态映射：Online字段为boolean或数字
+      status: device.Online || device.online ? 'online' : 'offline',
       channels: []
     }))
   }
@@ -130,7 +131,9 @@ export class WVPApiService {
     return channelList.map((channel: any) => ({
       channelId: channel.ID || channel.channelId,
       name: channel.Name || channel.name || 'Unknown',
-      status: channel.Online ? 'online' : 'offline'
+      // WVP 返回 status: "ON" | "OFF"，映射为 online | offline
+      // 注意：后续版本可能会移除此限制，允许离线通道也可点播
+      status: channel.Status === 'ON' || channel.status === 'ON' ? 'online' : 'offline'
     }))
   }
 

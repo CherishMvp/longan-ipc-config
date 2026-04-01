@@ -62,9 +62,9 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="w-full h-full flex flex-col bg-background">
-    <!-- Toolbar -->
-    <div class="flex items-center justify-between p-4 border-b">
+  <div class="h-screen flex flex-col bg-background">
+    <!-- 固定 Toolbar -->
+    <div class="flex-shrink-0 flex items-center justify-between p-4 border-b bg-background z-10">
       <h2 class="text-lg font-semibold">视频墙</h2>
       <div class="flex items-center gap-2">
         <Select v-model="store.currentLayout">
@@ -94,60 +94,62 @@ onBeforeUnmount(() => {
 
     <!-- Main Content -->
     <div class="flex-1 flex overflow-hidden">
-      <!-- Device Tree -->
-      <div class="w-64 border-r overflow-y-auto p-4">
-        <div v-if="loading" class="flex items-center justify-center h-32">
-          <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
-        </div>
+      <!-- 固定宽度侧边栏，内部滚动 -->
+      <div class="flex-shrink-0 w-64 border-r bg-background overflow-hidden flex flex-col">
+        <div class="flex-1 overflow-y-auto p-4">
+          <div v-if="loading" class="flex items-center justify-center h-32">
+            <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+          </div>
 
-        <div v-else-if="error" class="text-red-400 text-sm p-2">
-          {{ error }}
-        </div>
+          <div v-else-if="error" class="text-red-400 text-sm p-2">
+            {{ error }}
+          </div>
 
-        <div v-else class="space-y-2">
-          <div v-for="device in store.devices" :key="device.deviceId">
-            <!-- Device Header -->
-            <div 
-              class="flex items-center justify-between p-2 rounded hover:bg-muted cursor-pointer"
-              @click="toggleDevice(device.deviceId)"
-            >
-              <div class="flex items-center gap-2">
-                <Badge 
-                  :variant="device.status === 'online' ? 'default' : 'outline'"
-                  :class="device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'"
-                >
-                  {{ device.status === 'online' ? '在线' : '离线' }}
-                </Badge>
-                <span class="text-sm">{{ device.name }}</span>
-              </div>
-              <span class="text-muted-foreground text-xs">
-                {{ expandedDevices.has(device.deviceId) ? '▼' : '▶' }}
-              </span>
-            </div>
-
-            <!-- Channels -->
-            <div v-if="expandedDevices.has(device.deviceId)" class="ml-4 mt-2 space-y-1">
+          <div v-else class="space-y-2">
+            <div v-for="device in store.devices" :key="device.deviceId">
+              <!-- Device Header -->
               <div 
-                v-for="channel in device.channels"
-                :key="channel.channelId"
-                class="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer text-sm"
-                :class="{ 'opacity-50 cursor-not-allowed': channel.status === 'offline' }"
-                @click="handleChannelClick(device.deviceId, channel.channelId, channel.status)"
+                class="flex items-center justify-between p-2 rounded hover:bg-muted cursor-pointer"
+                @click="toggleDevice(device.deviceId)"
               >
-                <Badge 
-                  :variant="channel.status === 'online' ? 'default' : 'outline'"
-                  :class="channel.status === 'online' ? 'bg-green-500' : 'bg-gray-500'"
+                <div class="flex items-center gap-2">
+                  <Badge 
+                    :variant="device.status === 'online' ? 'default' : 'outline'"
+                    :class="device.status === 'online' ? 'bg-green-500' : 'bg-gray-500'"
+                  >
+                    {{ device.status === 'online' ? '在线' : '离线' }}
+                  </Badge>
+                  <span class="text-sm">{{ device.name }}</span>
+                </div>
+                <span class="text-muted-foreground text-xs">
+                  {{ expandedDevices.has(device.deviceId) ? '▼' : '▶' }}
+                </span>
+              </div>
+
+              <!-- Channels -->
+              <div v-if="expandedDevices.has(device.deviceId)" class="ml-4 mt-2 space-y-1">
+                <div 
+                  v-for="channel in device.channels"
+                  :key="channel.channelId"
+                  class="flex items-center gap-2 p-2 rounded hover:bg-muted cursor-pointer text-sm"
+                  :class="{ 'opacity-50 cursor-not-allowed': channel.status === 'offline' }"
+                  @click="handleChannelClick(device.deviceId, channel.channelId, channel.status)"
                 >
-                  {{ channel.status === 'online' ? '在线' : '离线' }}
-                </Badge>
-                <span class="text-xs text-muted-foreground">{{ channel.name }}</span>
+                  <Badge 
+                    :variant="channel.status === 'online' ? 'default' : 'outline'"
+                    :class="channel.status === 'online' ? 'bg-green-500' : 'bg-gray-500'"
+                  >
+                    {{ channel.status === 'online' ? '在线' : '离线' }}
+                  </Badge>
+                  <span class="text-xs text-muted-foreground">{{ channel.name }}</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Video Grid -->
+      <!-- 视频网格区域 -->
       <div class="flex-1 p-4 overflow-hidden">
         <div v-if="store.selectedChannels.length === 0" class="flex items-center justify-center h-full">
           <p class="text-muted-foreground">点击左侧设备通道开始播放</p>

@@ -40,6 +40,9 @@ export const useWVPStore = defineStore('wvp', () => {
       throw new Error('WVP not connected')
     }
     
+    // 清空旧数据，确保刷新时状态更新
+    devices.value = []
+    
     const deviceList = await wvpApi.value.getDevices()
     
     for (const device of deviceList) {
@@ -52,7 +55,7 @@ export const useWVPStore = defineStore('wvp', () => {
     }
     
     devices.value = deviceList
-    console.log('Devices loaded:', deviceList.length)
+    console.log('Devices loaded:', deviceList.length, 'with channels')
   }
 
   async function selectChannel(deviceId: string, channelId: string) {

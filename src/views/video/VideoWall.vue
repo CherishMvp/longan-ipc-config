@@ -150,7 +150,7 @@ onBeforeUnmount(() => {
       <div class="flex items-center gap-2">
         <!-- 设备状态筛选 -->
         <Select v-model="filterStatus">
-          <SelectTrigger class="w-[100px]">
+          <SelectTrigger class="w-[110px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>

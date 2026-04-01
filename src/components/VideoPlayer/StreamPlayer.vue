@@ -170,7 +170,7 @@ function destroyPlayer() {
 </script>
 
 <template>
-  <div class="relative aspect-video bg-black rounded-lg overflow-hidden border border-border group">
+  <div class="relative w-full h-full bg-black rounded-lg overflow-hidden border border-border group">
     <!-- 视频层 -->
     <video
       ref="videoRef"

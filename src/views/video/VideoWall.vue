@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useWVPStore } from '@/stores/device-store'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
@@ -19,6 +19,10 @@ const toastInstance = ref<any>(null)
 
 const maxSlots = computed(() => {
   return store.currentLayout === '3x3' ? 9 : 16
+})
+
+const isConnecting = computed(() => {
+  return loadingChannels.value.size > 0
 })
 
 async function loadDevices() {
@@ -199,7 +203,21 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 视频网格区域 -->
-      <div class="flex-1 p-4 overflow-hidden">
+      <div class="flex-1 p-4 overflow-hidden relative">
+        <!-- Loading 遮罩 -->
+        <div 
+          v-if="isConnecting" 
+          class="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center"
+        >
+          <div class="flex flex-col items-center gap-4">
+            <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div class="flex flex-col items-center gap-2">
+              <p class="text-sm font-medium">正在连接播放</p>
+              <p class="text-xs text-muted-foreground">请稍候，避免误触...</p>
+            </div>
+          </div>
+        </div>
+        
         <div v-if="store.selectedChannels.length === 0" class="flex items-center justify-center h-full">
           <p class="text-muted-foreground">点击左侧设备通道开始播放</p>
         </div>

@@ -30,10 +30,6 @@ const filteredDevices = computed(() => {
   return store.devices.filter(device => device.status === filterStatus.value)
 })
 
-const isConnecting = computed(() => {
-  return loadingChannels.value.size > 0
-})
-
 async function loadDevices() {
   if (loading.value) return
   
@@ -246,22 +242,7 @@ onBeforeUnmount(() => {
 
 <!-- 视频网格区域 -->
       <div class="flex-1 p-4 overflow-hidden relative">
-        <!-- Loading Overlay - 使用 v-show 避免 DOM 创建/销毁导致 grid 闪烁 -->
-        <div 
-          v-show="isConnecting" 
-          class="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center transition-opacity duration-200"
-          :class="isConnecting ? 'opacity-100' : 'opacity-0 pointer-events-none'"
-        >
-          <div class="flex flex-col items-center gap-4">
-            <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-            <div class="flex flex-col items-center gap-2">
-              <p class="text-sm font-medium">正在连接播放</p>
-              <p class="text-xs text-muted-foreground">请稍候，避免误触...</p>
-            </div>
-          </div>
-        </div>
-        
-        <div v-if="store.selectedChannels.length === 0" class="flex items-center justify-center h-full">
+        <div v-if="store.activeChannels.length === 0" class="flex items-center justify-center h-full">
           <p class="text-muted-foreground">点击左侧设备通道开始播放</p>
         </div>
 

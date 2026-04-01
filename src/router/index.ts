@@ -30,6 +30,12 @@ const routes: RouteRecordRaw[] = [
         name: 'VideoWall',
         component: () => import('@/views/video/VideoWall.vue'),
         meta: { title: '监控大屏' }
+      },
+      {
+        path: 'settings',
+        name: 'Settings',
+        component: () => import('@/views/settings/index.vue'),
+        meta: { title: '设置' }
       }
     ]
   }

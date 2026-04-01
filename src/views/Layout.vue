@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { RouterView, RouterLink, useRoute } from 'vue-router'
 import { useDeviceStore } from '@/stores/device'
-import { Home, Settings2, Wifi, MonitorPlay } from 'lucide-vue-next'
+import { Home, Settings2, Wifi, MonitorPlay, Settings } from 'lucide-vue-next'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const route = useRoute()
@@ -11,7 +11,8 @@ const menuItems = [
   { path: '/', name: '首页', icon: Home },
   { path: '/video-wall', name: '监控大屏', icon: MonitorPlay },
   { path: '/discovery', name: '设备自动发现', icon: Wifi },
-  { path: '/gas-config', name: 'IPC 气体配置', icon: Settings2 }
+  { path: '/gas-config', name: 'IPC 气体配置', icon: Settings2 },
+  { path: '/settings', name: '设置', icon: Settings }
 ]
 </script>
 

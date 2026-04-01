@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { WVPApiService, WVPDevice, StreamContent } from '@/services/wvp-api'
+import { useSettingsStore } from './settings'
 
 export interface SelectedChannel {
   deviceId: string
@@ -31,11 +32,17 @@ export const useWVPStore = defineStore('wvp', () => {
     return selectedChannels.value.filter(c => c !== null) as SelectedChannel[]
   })
 
-  async function initializeWVP(baseUrl: string, username: string = 'admin', password: string = 'admin') {
-    wvpBaseUrl.value = baseUrl
-    wvpApi.value = new WVPApiService(baseUrl)
+  async function initializeWVP(baseUrl?: string, username?: string, password?: string) {
+    const settingsStore = useSettingsStore()
     
-    const token = await wvpApi.value.login(username, password)
+    const finalBaseUrl = baseUrl || settingsStore.wvpConfig.baseUrl
+    const finalUsername = username || settingsStore.wvpConfig.username
+    const finalPassword = password || settingsStore.wvpConfig.password
+    
+    wvpBaseUrl.value = finalBaseUrl
+    wvpApi.value = new WVPApiService(finalBaseUrl)
+    
+    const token = await wvpApi.value.login(finalUsername, finalPassword)
     wvpConnected.value = true
     
     console.log('WVP initialized, token:', token)

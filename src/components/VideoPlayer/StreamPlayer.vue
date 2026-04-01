@@ -29,8 +29,22 @@ const signalQuality = ref<'good' | 'fair' | 'poor'>('good')
 const isConnecting = ref(true)
 const isError = ref(false)
 const retryCount = ref(0)
-const hasShownError = ref(false) // 记录是否已显示过错误
-const hasLoadedUrl = ref(false)  // 记录是否已加载过 URL
+const hasShownError = ref(false)
+const hasLoadedUrl = ref(false)
+const showDiagnostics = ref(false)
+
+const diagnostics = ref({
+  mseSupported: false,
+  h264Supported: false,
+  isLowEndDevice: false,
+  cpuCores: 0,
+  videoReadyState: 0,
+  videoNetworkState: 0,
+  videoWidth: 0,
+  videoHeight: 0,
+  videoError: null as { code: number; message: string } | null,
+  lastError: ''
+})
 
 const bufferConfig = computed(() => {
   const priority = props.priority || 'normal'
@@ -76,123 +90,162 @@ onUnmounted(() => {
   destroyPlayer()
 })
 
-async function initPlayer() {
-  if (!props.playUrl && !hasLoadedUrl.value) {
-    hasLoadedUrl.value = true
-    emit('request-url')
-    isConnecting.value = false
-    return
+function updateDiagnostics() {
+    const video = videoRef.value
+    if (!video) return
+    
+    diagnostics.value.videoReadyState = video.readyState
+    diagnostics.value.videoNetworkState = video.networkState
+    diagnostics.value.videoWidth = video.videoWidth
+    diagnostics.value.videoHeight = video.videoHeight
+    
+    if (video.error) {
+      diagnostics.value.videoError = {
+        code: video.error.code,
+        message: video.error.message
+      }
+    }
   }
   
-  if (!props.playUrl) {
-    isConnecting.value = false
-    return
+  function toggleDiagnostics() {
+    updateDiagnostics()
+    showDiagnostics.value = !showDiagnostics.value
   }
 
-  // 检测 MSE 支持
-  const mseSupported = typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01E"')
-  
-  logger.info('player', `初始化播放器 [${props.playerIndex}]`, {
-    deviceId: props.deviceId,
-    channelId: props.channelId,
-    url: props.playUrl,
-    priority: props.priority,
-    mseSupported,
-    userAgent: navigator.userAgent
-  })
+  async function initPlayer() {
+    if (!props.playUrl && !hasLoadedUrl.value) {
+      hasLoadedUrl.value = true
+      emit('request-url')
+      isConnecting.value = false
+      return
+    }
+    
+    if (!props.playUrl) {
+      isConnecting.value = false
+      return
+    }
 
-  try {
-    isConnecting.value = true
-    isError.value = false
-
-    // 低配设备优化配置
+    // 检测 MSE 支持
+    const mseSupported = typeof MediaSource !== 'undefined'
+    const h264Supported = mseSupported && MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01E"')
     const isLowEndDevice = navigator.hardwareConcurrency <= 4
     
-    player = mpegts.createPlayer({
-      type: 'flv',
-      url: props.playUrl,
-      isLive: true,
-      hasAudio: false
-    }, {
-      enableWorker: !isLowEndDevice,  // 低配设备禁用 Worker
-      enableStashBuffer: true,
-      stashInitialSize: isLowEndDevice ? 512 * 1024 : 1024 * 1024,  // 低配设备减小缓冲
-      liveBufferLatencyChasing: true,
-      liveBufferLatencyMaxLatency: props.priority === 'high' ? 2.0 : 5.0,
-      autoCleanupSourceBuffer: true,
-      fixAudioTimestampGap: false,
-    })
+    diagnostics.value.mseSupported = mseSupported
+    diagnostics.value.h264Supported = h264Supported
+    diagnostics.value.isLowEndDevice = isLowEndDevice
+    diagnostics.value.cpuCores = navigator.hardwareConcurrency
 
-    player.attachMediaElement(videoRef.value as any)
-    
-    // 监听 video 元素事件
-    const video = videoRef.value!
-    video.addEventListener('error', (e) => {
-      const error = video.error
-      logger.error('player', `Video 元素错误 [${props.playerIndex}]`, {
-        code: error?.code,
-        message: error?.message,
-        deviceId: props.deviceId
-      })
-    })
-    
-    video.addEventListener('stalled', () => {
-      logger.warn('player', `Video stalled [${props.playerIndex}]`, { deviceId: props.deviceId })
-    })
-    
-    video.addEventListener('waiting', () => {
-      logger.warn('player', `Video waiting [${props.playerIndex}]`, { deviceId: props.deviceId })
-    })
-    
-    video.addEventListener('playing', () => {
-      logger.info('player', `Video playing [${props.playerIndex}]`, {
-        deviceId: props.deviceId,
-        videoWidth: video.videoWidth,
-        videoHeight: video.videoHeight,
-        readyState: video.readyState
-      })
-    })
-    
-    player.on(mpegts.Events.ERROR, (type, detail, info) => {
-      logger.error('player', `mpegts.js 错误 [${props.playerIndex}]`, {
-        type,
-        detail,
-        info,
-        deviceId: props.deviceId
-      })
-      handlePlayerError()
-    })
-    
-    player.on(mpegts.Events.STATISTICS_INFO, updateSignalQuality)
-    
-    player.on(mpegts.Events.METADATA_ARRIVED, (metadata) => {
-      logger.info('player', `收到视频元数据 [${props.playerIndex}]`, {
-        width: metadata.width,
-        height: metadata.height,
-        framerate: metadata.framerate,
-        deviceId: props.deviceId
-      })
-    })
-
-    player.load()
-    await player.play()
-    
-    logger.info('player', `播放器启动成功 [${props.playerIndex}]`, {
-      isLowEndDevice,
-      workerEnabled: !isLowEndDevice
-    })
-  } catch (error: any) {
-    logger.error('player', `播放器初始化失败 [${props.playerIndex}]`, {
-      error: error.message,
-      stack: error.stack,
+    logger.info('player', `初始化播放器 [${props.playerIndex}]`, {
       deviceId: props.deviceId,
-      channelId: props.channelId
+      channelId: props.channelId,
+      url: props.playUrl,
+      priority: props.priority,
+      mseSupported,
+      h264Supported,
+      isLowEndDevice,
+      cpuCores: navigator.hardwareConcurrency
     })
-    isError.value = true
-    hasShownError.value = true
-    emit('error', error as Error)
+
+    try {
+      isConnecting.value = true
+      isError.value = false
+
+      player = mpegts.createPlayer({
+        type: 'flv',
+        url: props.playUrl,
+        isLive: true,
+        hasAudio: false
+      }, {
+        enableWorker: !isLowEndDevice,
+        enableStashBuffer: true,
+        stashInitialSize: isLowEndDevice ? 512 * 1024 : 1024 * 1024,
+        liveBufferLatencyChasing: true,
+        liveBufferLatencyMaxLatency: props.priority === 'high' ? 2.0 : 5.0,
+        autoCleanupSourceBuffer: true,
+        fixAudioTimestampGap: false,
+      })
+
+      player.attachMediaElement(videoRef.value as any)
+      
+      const video = videoRef.value!
+      video.addEventListener('error', (e) => {
+        const error = video.error
+        diagnostics.value.videoError = error ? { code: error.code, message: error.message } : null
+        diagnostics.value.lastError = `Video error: code=${error?.code}, msg=${error?.message}`
+        
+        logger.error('player', `Video 元素错误 [${props.playerIndex}]`, {
+          code: error?.code,
+          message: error?.message,
+          deviceId: props.deviceId
+        })
+      })
+      
+      video.addEventListener('stalled', () => {
+        diagnostics.value.lastError = 'Video stalled'
+        logger.warn('player', `Video stalled [${props.playerIndex}]`, { deviceId: props.deviceId })
+      })
+      
+      video.addEventListener('waiting', () => {
+        diagnostics.value.lastError = 'Video waiting for data'
+        logger.warn('player', `Video waiting [${props.playerIndex}]`, { deviceId: props.deviceId })
+      })
+      
+      video.addEventListener('playing', () => {
+        diagnostics.value.lastError = ''
+        updateDiagnostics()
+        
+        logger.info('player', `Video playing [${props.playerIndex}]`, {
+          deviceId: props.deviceId,
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+          readyState: video.readyState
+        })
+      })
+      
+      player.on(mpegts.Events.ERROR, (type, detail, info) => {
+        diagnostics.value.lastError = `mpegts error: ${type} - ${detail}`
+        
+        logger.error('player', `mpegts.js 错误 [${props.playerIndex}]`, {
+          type,
+          detail,
+          info,
+          deviceId: props.deviceId
+        })
+        handlePlayerError(type, detail, info)
+      })
+      
+      player.on(mpegts.Events.STATISTICS_INFO, updateSignalQuality)
+      
+      player.on(mpegts.Events.METADATA_ARRIVED, (metadata) => {
+        logger.info('player', `收到视频元数据 [${props.playerIndex}]`, {
+          width: metadata.width,
+          height: metadata.height,
+          framerate: metadata.framerate,
+          deviceId: props.deviceId
+        })
+      })
+
+      player.load()
+      await player.play()
+      
+      logger.info('player', `播放器启动成功 [${props.playerIndex}]`, {
+        isLowEndDevice,
+        workerEnabled: !isLowEndDevice
+      })
+    } catch (error: any) {
+      diagnostics.value.lastError = `Init error: ${error.message}`
+      
+      logger.error('player', `播放器初始化失败 [${props.playerIndex}]`, {
+        error: error.message,
+        stack: error.stack,
+        deviceId: props.deviceId,
+        channelId: props.channelId
+      })
+      isError.value = true
+      hasShownError.value = true
+      emit('error', error as Error)
+    }
   }
-}
 
 function handlePlayerError(type?: string, detail?: string, info?: any) {
   if (retryCount.value >= 10 || hasShownError.value) {
@@ -290,6 +343,56 @@ function destroyPlayer() {
       {{ signalQuality === 'good' ? '●' : signalQuality === 'fair' ? '◐' : '○' }}
       <span class="ml-1 text-[10px]">{{ signalQuality.toUpperCase() }}</span>
     </Badge>
+
+    <!-- 诊断信息面板 -->
+    <div 
+      v-if="showDiagnostics"
+      class="absolute inset-0 bg-black/90 z-20 p-4 overflow-auto"
+    >
+      <div class="text-xs font-mono text-green-400 space-y-2">
+        <div class="flex justify-between border-b border-green-900 pb-2 mb-2">
+          <span class="text-green-300">播放器诊断信息</span>
+          <button @click="showDiagnostics = false" class="text-red-400 hover:text-red-300">[关闭]</button>
+        </div>
+        
+        <div>MSE 支持: <span :class="diagnostics.mseSupported ? 'text-green-400' : 'text-red-400'">{{ diagnostics.mseSupported ? 'YES' : 'NO' }}</span></div>
+        <div>H.264 支持: <span :class="diagnostics.h264Supported ? 'text-green-400' : 'text-red-400'">{{ diagnostics.h264Supported ? 'YES' : 'NO' }}</span></div>
+        <div>低配设备: <span class="text-yellow-400">{{ diagnostics.isLowEndDevice ? 'YES' : 'NO' }}</span></div>
+        <div>Worker 启用: <span :class="!diagnostics.isLowEndDevice ? 'text-green-400' : 'text-yellow-400'">{{ !diagnostics.isLowEndDevice ? 'YES' : 'NO (自动禁用)' }}</span></div>
+        <div>CPU 核心: <span class="text-blue-400">{{ diagnostics.cpuCores }}</span></div>
+        
+        <div class="border-t border-green-900 pt-2 mt-2">
+          <div>视频状态:</div>
+          <div class="pl-2">
+            <div>readyState: <span class="text-blue-400">{{ diagnostics.videoReadyState }}</span></div>
+            <div>networkState: <span class="text-blue-400">{{ diagnostics.videoNetworkState }}</span></div>
+            <div>videoWidth: <span class="text-blue-400">{{ diagnostics.videoWidth || 'N/A' }}</span></div>
+            <div>videoHeight: <span class="text-blue-400">{{ diagnostics.videoHeight || 'N/A' }}</span></div>
+          </div>
+        </div>
+        
+        <div v-if="diagnostics.videoError" class="border-t border-red-900 pt-2 mt-2 text-red-400">
+          <div>错误信息:</div>
+          <div class="pl-2">
+            <div>code: {{ diagnostics.videoError.code }}</div>
+            <div>message: {{ diagnostics.videoError.message }}</div>
+          </div>
+        </div>
+        
+        <div v-if="diagnostics.lastError" class="border-t border-red-900 pt-2 mt-2 text-red-400">
+          <div>最近错误:</div>
+          <div class="pl-2 whitespace-pre-wrap">{{ diagnostics.lastError }}</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 诊断按钮 -->
+    <button
+      class="absolute bottom-2 right-2 z-10 px-2 py-1 bg-black/50 hover:bg-black/70 rounded text-white text-[10px] font-mono opacity-0 group-hover:opacity-100 transition-opacity"
+      @click="toggleDiagnostics"
+    >
+      [诊断]
+    </button>
 
     <!-- 加载状态 -->
     <div v-if="isConnecting" class="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">

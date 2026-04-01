@@ -16,8 +16,9 @@ const loading = ref(false)
 const loadingChannels = ref<Set<string>>(new Set())
 const expandedDevices = ref<Set<string>>(new Set())
 const toastInstance = ref<any>(null)
-const filterStatus = ref<'all' | 'online' | 'offline'>('all') // 筛选状态
-const isFullscreen = ref(false) // 全屏状态
+const filterStatus = ref<'all' | 'online' | 'offline'>('all')
+const isFullscreen = ref(false)
+const isFirstLoad = ref(true) // 判断是否是第一次加载视频
 
 const maxSlots = computed(() => {
   return store.currentLayout === '3x3' ? 9 : 16
@@ -28,6 +29,11 @@ const filteredDevices = computed(() => {
     return store.devices
   }
   return store.devices.filter(device => device.status === filterStatus.value)
+})
+
+// 是否显示全局 loading（第一次加载且正在连接）
+const showGlobalLoading = computed(() => {
+  return isFirstLoad.value && loadingChannels.value.size > 0 && store.activeChannels.length === 0
 })
 
 async function loadDevices() {
@@ -75,6 +81,11 @@ async function handleChannelClick(deviceId: string, channelId: string, status: s
   try {
     await store.selectChannel(deviceId, channelId)
     toast.success('开始播放')
+    
+    // 第一次加载成功后，标记为非首次
+    if (isFirstLoad.value) {
+      isFirstLoad.value = false
+    }
   } catch (err: any) {
     console.error('Select channel error:', err)
     toast.error(`播放失败：${err.message}`)
@@ -242,13 +253,22 @@ onBeforeUnmount(() => {
 
 <!-- 视频网格区域 -->
       <div class="flex-1 p-4 overflow-hidden relative">
-        <div v-if="store.activeChannels.length === 0" class="flex items-center justify-center h-full">
-          <p class="text-muted-foreground">点击左侧设备通道开始播放</p>
-        </div>
-
-<!-- 固定网格布局：始终渲染固定数量的格子，避免闪烁 -->
+        <!-- 第一次加载时的全局 loading -->
         <div 
-          v-else
+          v-if="showGlobalLoading"
+          class="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center"
+        >
+          <div class="flex flex-col items-center gap-4">
+            <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div class="flex flex-col items-center gap-2">
+              <p class="text-sm font-medium">正在初始化播放</p>
+              <p class="text-xs text-muted-foreground">请稍候...</p>
+            </div>
+          </div>
+        </div>
+        
+        <!-- 始终显示固定数量的格子 -->
+        <div 
           class="grid gap-2 h-full w-full"
           :class="store.currentLayout === '3x3' ? 'grid-cols-3 grid-rows-3' : 'grid-cols-4 grid-rows-4'"
         >

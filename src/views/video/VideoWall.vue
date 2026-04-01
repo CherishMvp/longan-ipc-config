@@ -16,14 +16,13 @@ const loading = ref(false)
 const loadingChannels = ref<Set<string>>(new Set())
 const expandedDevices = ref<Set<string>>(new Set())
 const toastInstance = ref<any>(null)
-const filterStatus = ref<'all' | 'online' | 'offline'>('all') // 筛选状态
-const isGridFullscreen = ref(false) // Grid 全屏状态
+const filterStatus = ref<'all' | 'online' | 'offline'>('all')
+const isFullscreen = ref(false)
 
 const maxSlots = computed(() => {
   return store.currentLayout === '3x3' ? 9 : 16
 })
 
-// 根据筛选条件过滤设备
 const filteredDevices = computed(() => {
   if (filterStatus.value === 'all') {
     return store.devices
@@ -106,27 +105,34 @@ async function stopAll() {
   }
 }
 
-// Grid 全屏切换（只全屏 grid 区域）
-function toggleGridFullscreen() {
-  isGridFullscreen.value = !isGridFullscreen.value
-}
-
-// 全屏时的操作预留
-function handleChangeQuality() {
-  // TODO: 切换清晰度
-  toast.info('切换清晰度功能开发中')
-}
-
-function handleRefreshStream() {
-  // TODO: 刷新流
-  toast.info('刷新流功能开发中')
+// 全屏模式：整个应用全屏，只显示 Grid
+function toggleFullscreen() {
+  if (!isFullscreen.value) {
+    // 进入全屏
+    document.documentElement.requestFullscreen()
+    isFullscreen.value = true
+  } else {
+    // 退出全屏
+    document.exitFullscreen()
+    isFullscreen.value = false
+  }
 }
 
 // ESC 退出全屏
 function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && isGridFullscreen.value) {
-    isGridFullscreen.value = false
+  if (e.key === 'Escape' && isFullscreen.value) {
+    isFullscreen.value = false
   }
+}
+
+// 预留：切换清晰度
+function handleChangeQuality() {
+  toast.info('切换清晰度功能开发中')
+}
+
+// 预留：刷新流
+function handleRefreshStream() {
+  toast.info('刷新流功能开发中')
 }
 
 onMounted(() => {
@@ -145,8 +151,8 @@ onBeforeUnmount(() => {
 
 <template>
   <div class="h-screen flex flex-col bg-background overflow-hidden">
-    <!-- 固定 Toolbar -->
-    <div class="flex-shrink-0 flex items-center justify-between p-4 border-b bg-background z-10">
+    <!-- 固定 Toolbar（全屏时隐藏） -->
+    <div v-show="!isFullscreen" class="flex-shrink-0 flex items-center justify-between p-4 border-b bg-background z-10">
       <div class="flex items-center gap-4">
         <h2 class="text-lg font-semibold">视频墙</h2>
         
@@ -186,8 +192,8 @@ onBeforeUnmount(() => {
         </Button>
         
         <!-- 全屏按钮 -->
-        <Button variant="outline" size="sm" @click="toggleGridFullscreen">
-          {{ isGridFullscreen ? '退出全屏' : '全屏' }}
+        <Button variant="outline" size="sm" @click="toggleFullscreen">
+          {{ isFullscreen ? '退出全屏' : '全屏' }}
         </Button>
       </div>
     </div>
@@ -195,10 +201,10 @@ onBeforeUnmount(() => {
     <!-- Toast 组件 -->
     <Toast ref="toastInstance" />
 
-    <!-- Main Content -->
-    <div class="flex-1 flex overflow-hidden">
-      <!-- 固定宽度侧边栏，全屏时隐藏 -->
-      <div v-show="!isGridFullscreen" class="flex-shrink-0 w-64 border-r bg-background overflow-hidden flex flex-col">
+<!-- Main Content -->
+    <div class="flex-1 flex overflow-hidden relative">
+      <!-- 固定宽度侧边栏（全屏时隐藏） -->
+      <div v-show="!isFullscreen" class="flex-shrink-0 w-64 border-r bg-background overflow-hidden flex flex-col">
         <div class="flex-1 overflow-y-auto p-4 scrollbar-hide">
           <div v-if="loading" class="flex items-center justify-center h-32">
             <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -253,25 +259,48 @@ onBeforeUnmount(() => {
       </div>
 
 <!-- 视频网格区域 -->
-      <div class="flex-1 p-4 overflow-hidden relative">
-        <!-- 全屏时的工具栏 -->
-        <div v-if="isGridFullscreen" class="absolute top-0 left-0 right-0 p-2 flex items-center justify-between bg-black/50 backdrop-blur-sm z-20">
+      <div class="flex-1 overflow-hidden relative" :class="isFullscreen ? 'p-0' : 'p-4'">
+        <!-- 全屏模式：浮动工具栏 -->
+        <div 
+          v-if="isFullscreen" 
+          class="absolute top-0 left-0 right-0 p-3 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent z-20"
+        >
           <div class="flex items-center gap-2">
             <MemoryStats :player-count="store.selectedChannels.length" />
           </div>
           
           <div class="flex items-center gap-2">
-            <!-- 预留操作 -->
-            <Button variant="outline" size="sm" @click="handleChangeQuality" class="bg-white/10 border-white/20 text-white hover:bg-white/20">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              @click="handleChangeQuality"
+              class="bg-white/10 border-white/30 text-white hover:bg-white/20"
+            >
               切换清晰度
             </Button>
-            <Button variant="outline" size="sm" @click="handleRefreshStream" class="bg-white/10 border-white/20 text-white hover:bg-white/20">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              @click="handleRefreshStream"
+              class="bg-white/10 border-white/30 text-white hover:bg-white/20"
+            >
               刷新流
             </Button>
-            <Button variant="outline" size="sm" @click="stopAll" :disabled="store.selectedChannels.length === 0" class="bg-white/10 border-white/20 text-white hover:bg-white/20">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              @click="stopAll"
+              :disabled="store.selectedChannels.length === 0"
+              class="bg-white/10 border-white/30 text-white hover:bg-white/20"
+            >
               停止全部
             </Button>
-            <Button variant="outline" size="sm" @click="toggleGridFullscreen" class="bg-white/10 border-white/20 text-white hover:bg-white/20">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              @click="toggleFullscreen"
+              class="bg-white/10 border-white/30 text-white hover:bg-white/20"
+            >
               退出全屏
             </Button>
           </div>

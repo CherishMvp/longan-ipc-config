@@ -20,6 +20,7 @@ import { StreamService } from './StreamService'
 
 let mainWindow: BrowserWindow | null = null
 const streamService = new StreamService()
+const appStartTime = Date.now()
 
 // Initialize Database
 const db = initDB()
@@ -279,13 +280,21 @@ ipcMain.handle('onvif-get-stream-uri', async (_event, { url, protocol, username,
 ipcMain.handle('get-memory-usage', async () => {
   const memoryUsage = process.memoryUsage()
   return {
-    rss: memoryUsage.rss,           // Resident Set Size - 总物理内存
-    heapTotal: memoryUsage.heapTotal, // V8 堆总量
-    heapUsed: memoryUsage.heapUsed,   // V8 堆使用量
-    external: memoryUsage.external,   // C++ 对象内存
+    rss: memoryUsage.rss,
+    heapTotal: memoryUsage.heapTotal,
+    heapUsed: memoryUsage.heapUsed,
+    external: memoryUsage.external,
     arrayBuffers: memoryUsage.arrayBuffers || 0
   }
-});
+})
+
+// CPU Usage
+ipcMain.handle('get-cpu-usage', async () => {
+  const cpuUsage = process.cpuUsage()
+  const elapsed = Date.now() - appStartTime
+  const percent = Math.round(((cpuUsage.user + cpuUsage.system) / 1000 / elapsed) * 100)
+  return Math.min(100, percent)
+})
 
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => { 

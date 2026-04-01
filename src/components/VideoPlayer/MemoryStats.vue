@@ -7,70 +7,85 @@ const props = defineProps<{
 }>()
 
 interface MemoryStats {
-  rss: number         // 驻留集大小（总物理内存）
-  heapTotal: number   // V8 堆总量
-  heapUsed: number    // V8 堆使用量
-  external: number    // C++ 对象内存
-  arrayBuffers: number // ArrayBuffer 内存
+  rss: number
+  heapTotal: number
+  heapUsed: number
+  external: number
+  arrayBuffers: number
   usedMB: number
   totalMB: number
 }
 
 const memoryStats = ref<MemoryStats | null>(null)
+const cpuPercent = ref<number>(0)
 const updateInterval = ref<number | null>(null)
 
-async function getElectronMemory(): Promise<MemoryStats | null> {
-  try {
-    // Electron 环境：通过 IPC 从主进程获取内存信息
-    if (window.electronAPI?.getMemoryUsage) {
-      const memory = await window.electronAPI.getMemoryUsage()
-      return {
-        rss: memory.rss,
-        heapTotal: memory.heapTotal,
-        heapUsed: memory.heapUsed,
-        external: memory.external,
-        arrayBuffers: memory.arrayBuffers || 0,
-        usedMB: Math.round(memory.heapUsed / 1024 / 1024),
-        totalMB: Math.round(memory.rss / 1024 / 1024)
+async function getSystemStats(): Promise<{ memory: MemoryStats | null; cpu: number }> {
+  let memory = null
+  let cpu = 0
+
+  // 1. Electron 环境：获取主进程内存 + CPU
+  if (window.electronAPI?.getMemoryUsage) {
+    try {
+      const mem = await window.electronAPI.getMemoryUsage()
+      memory = {
+        rss: mem.rss,
+        heapTotal: mem.heapTotal,
+        heapUsed: mem.heapUsed,
+        external: mem.external,
+        arrayBuffers: mem.arrayBuffers || 0,
+        usedMB: Math.round(mem.heapUsed / 1024 / 1024),
+        totalMB: Math.round(mem.rss / 1024 / 1024)
       }
+    } catch (error) {
+      console.error('Failed to get memory:', error)
     }
-    
-    // 备用：Chrome/Edge 浏览器环境
-    const memory = (performance as any).memory
-    if (memory) {
-      return {
-        rss: memory.totalJSHeapSize,
-        heapTotal: memory.totalJSHeapSize,
-        heapUsed: memory.usedJSHeapSize,
+  }
+
+  // 2. 浏览器环境备用
+  if (!memory) {
+    const browserMemory = (performance as any).memory
+    if (browserMemory) {
+      memory = {
+        rss: browserMemory.totalJSHeapSize,
+        heapTotal: browserMemory.totalJSHeapSize,
+        heapUsed: browserMemory.usedJSHeapSize,
         external: 0,
         arrayBuffers: 0,
-        usedMB: Math.round(memory.usedJSHeapSize / 1024 / 1024),
-        totalMB: Math.round(memory.jsHeapSizeLimit / 1024 / 1024)
+        usedMB: Math.round(browserMemory.usedJSHeapSize / 1024 / 1024),
+        totalMB: Math.round(browserMemory.jsHeapSizeLimit / 1024 / 1024)
       }
     }
-    
-    return null
-  } catch (error) {
-    console.error('Failed to get memory stats:', error)
-    return null
   }
+
+  // 3. CPU 占用（如果有 IPC）
+  if (window.electronAPI?.getCPUUsage) {
+    try {
+      cpu = await window.electronAPI.getCPUUsage()
+    } catch (error) {
+      // Ignore
+    }
+  }
+
+  return { memory, cpu }
 }
 
 async function updateStats() {
-  memoryStats.value = await getElectronMemory()
+  const stats = await getSystemStats()
+  memoryStats.value = stats.memory
+  cpuPercent.value = stats.cpu
 }
 
-function getMemoryClass(usedMB: number): string {
-  if (usedMB < 500) return 'bg-green-500'
-  if (usedMB < 1000) return 'bg-yellow-500'
+function getMemoryClass(mb: number): string {
+  if (mb < 500) return 'bg-green-500'
+  if (mb < 1000) return 'bg-yellow-500'
   return 'bg-red-500'
 }
 
-function getUsagePercent(): number {
-  if (!memoryStats.value) return 0
-  // 使用 RSS（驻留集大小）作为实际内存占用
-  const percent = (memoryStats.value.heapUsed / memoryStats.value.rss) * 100
-  return Math.min(100, Math.round(percent))
+function getCPUClass(percent: number): string {
+  if (percent < 30) return 'bg-green-500'
+  if (percent < 60) return 'bg-yellow-500'
+  return 'bg-red-500'
 }
 
 onMounted(() => {
@@ -95,30 +110,27 @@ onBeforeUnmount(() => {
       </Badge>
     </div>
     
-    <!-- 内存占用 -->
+    <!-- 内存 -->
     <div v-if="memoryStats" class="flex items-center gap-1.5">
       <span class="text-muted-foreground">内存:</span>
       <Badge 
         variant="outline" 
-        :class="getMemoryClass(memoryStats.usedMB)"
+        :class="getMemoryClass(memoryStats.totalMB)"
         class="font-mono"
       >
-        {{ memoryStats.usedMB }} MB
+        {{ memoryStats.totalMB }} MB
       </Badge>
-      <div class="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-        <div 
-          class="h-full transition-all duration-500"
-          :class="getMemoryClass(memoryStats.usedMB)"
-          :style="{ width: `${getUsagePercent()}%` }"
-        />
-      </div>
     </div>
     
-    <!-- 不支持内存 API 的提示 -->
-    <div v-else class="flex items-center gap-1.5">
-      <span class="text-muted-foreground">内存:</span>
-      <Badge variant="outline" class="font-mono text-muted-foreground">
-        N/A
+    <!-- CPU -->
+    <div v-if="cpuPercent > 0" class="flex items-center gap-1.5">
+      <span class="text-muted-foreground">CPU:</span>
+      <Badge 
+        variant="outline" 
+        :class="getCPUClass(cpuPercent)"
+        class="font-mono"
+      >
+        {{ cpuPercent }}%
       </Badge>
     </div>
   </div>

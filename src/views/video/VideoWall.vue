@@ -16,9 +16,19 @@ const loading = ref(false)
 const loadingChannels = ref<Set<string>>(new Set())
 const expandedDevices = ref<Set<string>>(new Set())
 const toastInstance = ref<any>(null)
+const filterStatus = ref<'all' | 'online' | 'offline'>('all') // 筛选状态
+const isFullscreen = ref(false) // 全屏状态
 
 const maxSlots = computed(() => {
   return store.currentLayout === '3x3' ? 9 : 16
+})
+
+// 根据筛选条件过滤设备
+const filteredDevices = computed(() => {
+  if (filterStatus.value === 'all') {
+    return store.devices
+  }
+  return store.devices.filter(device => device.status === filterStatus.value)
 })
 
 const isConnecting = computed(() => {
@@ -26,7 +36,7 @@ const isConnecting = computed(() => {
 })
 
 async function loadDevices() {
-  if (loading.value) return // 防止重复点击
+  if (loading.value) return
   
   loading.value = true
   
@@ -60,7 +70,6 @@ async function handleChannelClick(deviceId: string, channelId: string, status: s
     return
   }
   
-  // 防止重复点击
   const key = `${deviceId}-${channelId}`
   if (loadingChannels.value.has(key)) {
     return
@@ -97,16 +106,33 @@ async function stopAll() {
   }
 }
 
+// 全屏切换
+function toggleFullscreen() {
+  if (!document.fullscreenElement) {
+    document.documentElement.requestFullscreen()
+    isFullscreen.value = true
+  } else {
+    document.exitFullscreen()
+    isFullscreen.value = false
+  }
+}
+
+// 监听全屏变化
+function handleFullscreenChange() {
+  isFullscreen.value = !!document.fullscreenElement
+}
+
 onMounted(() => {
-  // 初始化 toast 实例
   if (toastInstance.value) {
     toast.setToastInstance(toastInstance.value)
   }
   loadDevices()
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
 })
 
 onBeforeUnmount(() => {
   store.stopAllChannels()
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
 })
 </script>
 
@@ -122,6 +148,18 @@ onBeforeUnmount(() => {
       </div>
       
       <div class="flex items-center gap-2">
+        <!-- 设备状态筛选 -->
+        <Select v-model="filterStatus">
+          <SelectTrigger class="w-[100px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">全部设备</SelectItem>
+            <SelectItem value="online">在线设备</SelectItem>
+            <SelectItem value="offline">离线设备</SelectItem>
+          </SelectContent>
+        </Select>
+        
         <Select v-model="store.currentLayout">
           <SelectTrigger class="w-[120px]">
             <SelectValue />
@@ -139,6 +177,11 @@ onBeforeUnmount(() => {
         <Button variant="outline" size="sm" @click="stopAll" :disabled="store.selectedChannels.length === 0">
           停止全部
         </Button>
+        
+        <!-- 全屏按钮 -->
+        <Button variant="outline" size="sm" @click="toggleFullscreen">
+          {{ isFullscreen ? '退出全屏' : '全屏' }}
+        </Button>
       </div>
     </div>
 
@@ -154,12 +197,12 @@ onBeforeUnmount(() => {
             <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
 
-          <div v-else-if="store.devices.length === 0" class="text-muted-foreground text-sm p-2">
-            暂无设备
+          <div v-else-if="filteredDevices.length === 0" class="text-muted-foreground text-sm p-2">
+            {{ filterStatus === 'all' ? '暂无设备' : `暂无${filterStatus === 'online' ? '在线' : '离线'}设备` }}
           </div>
 
           <div v-else class="space-y-2">
-            <div v-for="device in store.devices" :key="device.deviceId">
+            <div v-for="device in filteredDevices" :key="device.deviceId">
               <!-- Device Header -->
               <div 
                 class="flex items-center justify-between p-2 rounded hover:bg-muted cursor-pointer"

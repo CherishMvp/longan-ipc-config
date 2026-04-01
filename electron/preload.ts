@@ -4,8 +4,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // HTTP
   httpRequest: (options: any) => ipcRenderer.invoke('http-request', options),
   
-  // Memory Stats
+// Memory Stats
   getMemoryUsage: () => ipcRenderer.invoke('get-memory-usage'),
+  getCPUUsage: () => ipcRenderer.invoke('get-cpu-usage'),
 
   // Discovery
   startScan: (options?: any) => ipcRenderer.invoke('start-scan', options),

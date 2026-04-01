@@ -89,42 +89,102 @@ async function initPlayer() {
     return
   }
 
+  // 检测 MSE 支持
+  const mseSupported = typeof MediaSource !== 'undefined' && MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01E"')
+  
   logger.info('player', `初始化播放器 [${props.playerIndex}]`, {
     deviceId: props.deviceId,
     channelId: props.channelId,
     url: props.playUrl,
-    priority: props.priority
+    priority: props.priority,
+    mseSupported,
+    userAgent: navigator.userAgent
   })
 
   try {
     isConnecting.value = true
     isError.value = false
 
+    // 低配设备优化配置
+    const isLowEndDevice = navigator.hardwareConcurrency <= 4
+    
     player = mpegts.createPlayer({
       type: 'flv',
       url: props.playUrl,
       isLive: true,
       hasAudio: false
     }, {
-      enableWorker: true,
+      enableWorker: !isLowEndDevice,  // 低配设备禁用 Worker
       enableStashBuffer: true,
-      ...bufferConfig.value,
+      stashInitialSize: isLowEndDevice ? 512 * 1024 : 1024 * 1024,  // 低配设备减小缓冲
       liveBufferLatencyChasing: true,
-      liveBufferLatencyMaxLatency: props.priority === 'high' ? 2.0 : 5.0
+      liveBufferLatencyMaxLatency: props.priority === 'high' ? 2.0 : 5.0,
+      autoCleanupSourceBuffer: true,
+      fixAudioTimestampGap: false,
     })
 
     player.attachMediaElement(videoRef.value as any)
     
-    player.on(mpegts.Events.ERROR, handlePlayerError)
+    // 监听 video 元素事件
+    const video = videoRef.value!
+    video.addEventListener('error', (e) => {
+      const error = video.error
+      logger.error('player', `Video 元素错误 [${props.playerIndex}]`, {
+        code: error?.code,
+        message: error?.message,
+        deviceId: props.deviceId
+      })
+    })
+    
+    video.addEventListener('stalled', () => {
+      logger.warn('player', `Video stalled [${props.playerIndex}]`, { deviceId: props.deviceId })
+    })
+    
+    video.addEventListener('waiting', () => {
+      logger.warn('player', `Video waiting [${props.playerIndex}]`, { deviceId: props.deviceId })
+    })
+    
+    video.addEventListener('playing', () => {
+      logger.info('player', `Video playing [${props.playerIndex}]`, {
+        deviceId: props.deviceId,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        readyState: video.readyState
+      })
+    })
+    
+    player.on(mpegts.Events.ERROR, (type, detail, info) => {
+      logger.error('player', `mpegts.js 错误 [${props.playerIndex}]`, {
+        type,
+        detail,
+        info,
+        deviceId: props.deviceId
+      })
+      handlePlayerError()
+    })
+    
     player.on(mpegts.Events.STATISTICS_INFO, updateSignalQuality)
+    
+    player.on(mpegts.Events.METADATA_ARRIVED, (metadata) => {
+      logger.info('player', `收到视频元数据 [${props.playerIndex}]`, {
+        width: metadata.width,
+        height: metadata.height,
+        framerate: metadata.framerate,
+        deviceId: props.deviceId
+      })
+    })
 
     player.load()
     await player.play()
     
-    logger.info('player', `播放器启动成功 [${props.playerIndex}]`)
+    logger.info('player', `播放器启动成功 [${props.playerIndex}]`, {
+      isLowEndDevice,
+      workerEnabled: !isLowEndDevice
+    })
   } catch (error: any) {
     logger.error('player', `播放器初始化失败 [${props.playerIndex}]`, {
       error: error.message,
+      stack: error.stack,
       deviceId: props.deviceId,
       channelId: props.channelId
     })
@@ -134,11 +194,17 @@ async function initPlayer() {
   }
 }
 
-function handlePlayerError() {
+function handlePlayerError(type?: string, detail?: string, info?: any) {
   if (retryCount.value >= 10 || hasShownError.value) {
-    // 超过重试次数或已显示过错误，不再显示弹窗
     return
   }
+  
+  logger.error('player', `播放错误 [${props.playerIndex}]`, {
+    type,
+    detail,
+    info,
+    retryCount: retryCount.value
+  })
   
   handleReconnect()
 }

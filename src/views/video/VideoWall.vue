@@ -35,6 +35,10 @@ const isConnecting = computed(() => {
   return loadingChannels.value.size > 0
 })
 
+const isConnecting = computed(() => {
+  return loadingChannels.value.size > 0
+})
+
 async function loadDevices() {
   if (loading.value) return
   
@@ -245,9 +249,9 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <!-- 视频网格区域 -->
-      <div class="flex-1 p-4 overflow-hidden relative">
-        <!-- Loading 遮罩 -->
+<!-- 视频网格区域 -->
+      <div class="flex-1 p-4 overflow-hidden">
+        <!-- Loading Overlay -->
         <div 
           v-if="isConnecting" 
           class="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center"

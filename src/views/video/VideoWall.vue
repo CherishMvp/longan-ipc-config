@@ -149,7 +149,7 @@ onBeforeUnmount(() => {
       <div class="flex items-center gap-2">
         <!-- 设备状态筛选 -->
         <Select v-model="filterStatus">
-          <SelectTrigger class="w-[100px]">
+          <SelectTrigger class="w-[110px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -264,32 +264,37 @@ onBeforeUnmount(() => {
           <p class="text-muted-foreground">点击左侧设备通道开始播放</p>
         </div>
 
-        <!-- 固定网格布局：每个格子均分 -->
+<!-- 固定网格布局：始终渲染固定数量的格子，避免闪烁 -->
         <div 
           v-else
           class="grid gap-2 h-full w-full"
           :class="store.currentLayout === '3x3' ? 'grid-cols-3 grid-rows-3' : 'grid-cols-4 grid-rows-4'"
         >
-          <!-- 已播放的通道 -->
-          <StreamPlayer
-            v-for="(channel, index) in store.selectedChannels"
-            :key="`${channel.deviceId}-${channel.channelId}`"
-            :device-id="channel.deviceId"
-            :channel-id="channel.channelId"
-            :play-url="channel.playUrl"
-            :stream-content="channel.streamContent"
-            :player-index="index"
-            :priority="channel.playerIndex < 4 ? 'high' : 'normal'"
-            @close="stopChannel(index)"
-          />
-          
-          <!-- 空白格子占位 -->
-          <div
-            v-for="i in (maxSlots - store.selectedChannels.length)"
-            :key="`empty-${i}`"
-            class="w-full h-full bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30 flex items-center justify-center"
+          <!-- 固定格子：根据索引显示视频或空白占位 -->
+          <div 
+            v-for="i in maxSlots" 
+            :key="`slot-${i}`"
+            class="w-full h-full"
           >
-            <span class="text-muted-foreground/50 text-sm">点击左侧添加</span>
+            <!-- 已播放的通道 -->
+            <StreamPlayer
+              v-if="i <= store.selectedChannels.length"
+              :device-id="store.selectedChannels[i-1].deviceId"
+              :channel-id="store.selectedChannels[i-1].channelId"
+              :play-url="store.selectedChannels[i-1].playUrl"
+              :stream-content="store.selectedChannels[i-1].streamContent"
+              :player-index="i-1"
+              :priority="i-1 < 4 ? 'high' : 'normal'"
+              @close="stopChannel(i-1)"
+            />
+            
+            <!-- 空白格子占位 -->
+            <div
+              v-else
+              class="w-full h-full bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30 flex items-center justify-center"
+            >
+              <span class="text-muted-foreground/50 text-sm">点击左侧添加</span>
+            </div>
           </div>
         </div>
       </div>

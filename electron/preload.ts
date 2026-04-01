@@ -3,6 +3,9 @@ import { contextBridge, ipcRenderer } from 'electron'
 contextBridge.exposeInMainWorld('electronAPI', {
   // HTTP
   httpRequest: (options: any) => ipcRenderer.invoke('http-request', options),
+  
+  // Memory Stats
+  getMemoryUsage: () => ipcRenderer.invoke('get-memory-usage'),
 
   // Discovery
   startScan: (options?: any) => ipcRenderer.invoke('start-scan', options),

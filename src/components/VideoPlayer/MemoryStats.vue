@@ -7,72 +7,80 @@ const props = defineProps<{
 }>()
 
 interface MemoryStats {
-  usedJSHeapSize: number
-  totalJSHeapSize: number
-  jsHeapSizeLimit: number
+  rss: number         // 驻留集大小（总物理内存）
+  heapTotal: number   // V8 堆总量
+  heapUsed: number    // V8 堆使用量
+  external: number    // C++ 对象内存
+  arrayBuffers: number // ArrayBuffer 内存
   usedMB: number
   totalMB: number
-  limitMB: number
-  usagePercent: number
 }
 
 const memoryStats = ref<MemoryStats | null>(null)
-const cpuUsage = ref<number>(0)
-let updateInterval: number | null = null
-let lastTime = performance.now()
+const updateInterval = ref<number | null>(null)
 
-function getMemoryStats(): MemoryStats | null {
-  // Chrome/Edge 支持 performance.memory
-  const memory = (performance as any).memory
-  if (!memory) {
+async function getElectronMemory(): Promise<MemoryStats | null> {
+  try {
+    // Electron 环境：通过 IPC 从主进程获取内存信息
+    if (window.electronAPI?.getMemoryUsage) {
+      const memory = await window.electronAPI.getMemoryUsage()
+      return {
+        rss: memory.rss,
+        heapTotal: memory.heapTotal,
+        heapUsed: memory.heapUsed,
+        external: memory.external,
+        arrayBuffers: memory.arrayBuffers || 0,
+        usedMB: Math.round(memory.heapUsed / 1024 / 1024),
+        totalMB: Math.round(memory.rss / 1024 / 1024)
+      }
+    }
+    
+    // 备用：Chrome/Edge 浏览器环境
+    const memory = (performance as any).memory
+    if (memory) {
+      return {
+        rss: memory.totalJSHeapSize,
+        heapTotal: memory.totalJSHeapSize,
+        heapUsed: memory.usedJSHeapSize,
+        external: 0,
+        arrayBuffers: 0,
+        usedMB: Math.round(memory.usedJSHeapSize / 1024 / 1024),
+        totalMB: Math.round(memory.jsHeapSizeLimit / 1024 / 1024)
+      }
+    }
+    
+    return null
+  } catch (error) {
+    console.error('Failed to get memory stats:', error)
     return null
   }
-  
-  const usedJSHeapSize = memory.usedJSHeapSize
-  const totalJSHeapSize = memory.totalJSHeapSize
-  const jsHeapSizeLimit = memory.jsHeapSizeLimit
-  
-  return {
-    usedJSHeapSize,
-    totalJSHeapSize,
-    jsHeapSizeLimit,
-    usedMB: Math.round(usedJSHeapSize / 1024 / 1024),
-    totalMB: Math.round(totalJSHeapSize / 1024 / 1024),
-    limitMB: Math.round(jsHeapSizeLimit / 1024 / 1024),
-    usagePercent: Math.round((usedJSHeapSize / jsHeapSizeLimit) * 100)
-  }
 }
 
-function updateStats() {
-  memoryStats.value = getMemoryStats()
-  
-  // 简单的 CPU 占用估算（基于主线程任务执行时间）
-  const now = performance.now()
-  const elapsed = now - lastTime
-  const cpuTime = performance.now() - now
-  
-  if (elapsed > 0) {
-    // 近似 CPU 占用率（非常粗略的估算）
-    cpuUsage.value = Math.min(100, Math.round((cpuTime / elapsed) * 100))
-  }
-  
-  lastTime = now
+async function updateStats() {
+  memoryStats.value = await getElectronMemory()
 }
 
-function getMemoryClass(percent: number): string {
-  if (percent < 50) return 'bg-green-500'
-  if (percent < 75) return 'bg-yellow-500'
+function getMemoryClass(usedMB: number): string {
+  if (usedMB < 500) return 'bg-green-500'
+  if (usedMB < 1000) return 'bg-yellow-500'
   return 'bg-red-500'
+}
+
+function getUsagePercent(): number {
+  if (!memoryStats.value) return 0
+  // 使用 RSS（驻留集大小）作为实际内存占用
+  const percent = (memoryStats.value.heapUsed / memoryStats.value.rss) * 100
+  return Math.min(100, Math.round(percent))
 }
 
 onMounted(() => {
   updateStats()
-  updateInterval = window.setInterval(updateStats, 2000)
+  updateInterval.value = window.setInterval(updateStats, 2000)
 })
 
 onBeforeUnmount(() => {
-  if (updateInterval) {
-    clearInterval(updateInterval)
+  if (updateInterval.value) {
+    clearInterval(updateInterval.value)
   }
 })
 </script>
@@ -92,16 +100,16 @@ onBeforeUnmount(() => {
       <span class="text-muted-foreground">内存:</span>
       <Badge 
         variant="outline" 
-        :class="getMemoryClass(memoryStats.usagePercent)"
+        :class="getMemoryClass(memoryStats.usedMB)"
         class="font-mono"
       >
-        {{ memoryStats.usedMB }} / {{ memoryStats.limitMB }} MB
+        {{ memoryStats.usedMB }} MB
       </Badge>
-      <div class="w-20 h-1.5 bg-gray-200 rounded-full overflow-hidden">
+      <div class="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div 
           class="h-full transition-all duration-500"
-          :class="getMemoryClass(memoryStats.usagePercent)"
-          :style="{ width: `${memoryStats.usagePercent}%` }"
+          :class="getMemoryClass(memoryStats.usedMB)"
+          :style="{ width: `${getUsagePercent()}%` }"
         />
       </div>
     </div>

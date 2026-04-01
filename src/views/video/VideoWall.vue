@@ -141,7 +141,7 @@ onBeforeUnmount(() => {
     <div class="flex-1 flex overflow-hidden">
       <!-- 固定宽度侧边栏，内部滚动 -->
       <div class="flex-shrink-0 w-64 border-r bg-background overflow-hidden flex flex-col">
-        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
+        <div class="flex-1 overflow-y-auto p-4 scrollbar-hide">
           <div v-if="loading" class="flex items-center justify-center h-32">
             <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
@@ -195,17 +195,15 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 视频网格区域 -->
-      <div class="flex-1 p-4 overflow-hidden">
+      <div class="flex-1 p-4 overflow-hidden flex flex-col">
         <div v-if="store.selectedChannels.length === 0" class="flex items-center justify-center h-full">
           <p class="text-muted-foreground">点击左侧设备通道开始播放</p>
         </div>
 
         <div 
           v-else 
-          :class="[
-            'grid gap-2 h-full',
-            store.currentLayout === '3x3' ? 'grid-cols-3' : 'grid-cols-4'
-          ]"
+          class="grid gap-2 h-full content-start"
+          :class="store.currentLayout === '3x3' ? 'grid-cols-3 grid-rows-3' : 'grid-cols-4 grid-rows-4'"
         >
           <StreamPlayer
             v-for="(channel, index) in store.selectedChannels"
@@ -225,34 +223,22 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+/* 固定 Grid 布局，避免换行时空白问题 */
 .grid {
-  auto-rows-fr: 1fr;
+  grid-auto-rows: 1fr;
 }
 
-/* 隐藏默认滚动条，保留滚动功能 */
-.custom-scrollbar {
-  scrollbar-width: thin;
-  scrollbar-color: transparent transparent;
+.grid > * {
+  min-height: 0;
 }
 
-.custom-scrollbar:hover {
-  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+/* 隐藏默认滚动条 */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background-color: transparent;
-  border-radius: 3px;
-}
-
-.custom-scrollbar:hover::-webkit-scrollbar-thumb {
-  background-color: rgba(155, 155, 155, 0.5);
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 </style>

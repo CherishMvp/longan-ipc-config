@@ -275,6 +275,18 @@ ipcMain.handle('onvif-get-stream-uri', async (_event, { url, protocol, username,
   }
 });
 
+// Memory Stats
+ipcMain.handle('get-memory-usage', async () => {
+  const memoryUsage = process.memoryUsage()
+  return {
+    rss: memoryUsage.rss,           // Resident Set Size - 总物理内存
+    heapTotal: memoryUsage.heapTotal, // V8 堆总量
+    heapUsed: memoryUsage.heapUsed,   // V8 堆使用量
+    external: memoryUsage.external,   // C++ 对象内存
+    arrayBuffers: memoryUsage.arrayBuffers || 0
+  }
+});
+
 app.whenReady().then(createWindow);
 app.on('window-all-closed', () => { 
     streamService.stopAll();

@@ -269,9 +269,8 @@ onBeforeUnmount(() => {
           <p class="text-muted-foreground">点击左侧设备通道开始播放</p>
         </div>
 
-        <!-- 固定网格布局：每个格子均分 -->
+<!-- 固定网格布局：每个格子均分 -->
         <div 
-          v-else 
           class="grid gap-2 h-full w-full"
           :class="store.currentLayout === '3x3' ? 'grid-cols-3 grid-rows-3' : 'grid-cols-4 grid-rows-4'"
         >
@@ -288,14 +287,15 @@ onBeforeUnmount(() => {
             @close="stopChannel(index)"
           />
           
-          <!-- 空白格子占位：填充剩余位置 -->
+          <!-- 空白格子占位 -->
           <div
             v-for="i in (maxSlots - store.selectedChannels.length)"
             :key="`empty-${i}`"
-            class="w-full h-full bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30 flex items-center justify-center"
+            class="aspect-video bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30 flex items-center justify-center"
           >
             <span class="text-muted-foreground/50 text-sm">点击左侧添加</span>
           </div>
+        </div>
         </div>
       </div>
     </div>

@@ -246,10 +246,11 @@ onBeforeUnmount(() => {
 
 <!-- 视频网格区域 -->
       <div class="flex-1 p-4 overflow-hidden relative">
-        <!-- Loading Overlay -->
+        <!-- Loading Overlay - 使用 v-show 避免 DOM 创建/销毁导致 grid 闪烁 -->
         <div 
-          v-if="isConnecting" 
-          class="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center"
+          v-show="isConnecting" 
+          class="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center transition-opacity duration-200"
+          :class="isConnecting ? 'opacity-100' : 'opacity-0 pointer-events-none'"
         >
           <div class="flex flex-col items-center gap-4">
             <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>

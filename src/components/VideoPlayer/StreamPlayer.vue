@@ -130,6 +130,10 @@ function updateDiagnostics() {
     const h264Supported = mseSupported && MediaSource.isTypeSupported('video/mp4; codecs="avc1.42E01E"')
     const isLowEndDevice = navigator.hardwareConcurrency <= 4
     
+    // 判断 URL 类型
+    const isWsUrl = props.playUrl.startsWith('ws://') || props.playUrl.startsWith('wss://')
+    const isHttpUrl = props.playUrl.startsWith('http://') || props.playUrl.startsWith('https://')
+    
     diagnostics.value.mseSupported = mseSupported
     diagnostics.value.h264Supported = h264Supported
     diagnostics.value.isLowEndDevice = isLowEndDevice
@@ -139,6 +143,7 @@ function updateDiagnostics() {
       deviceId: props.deviceId,
       channelId: props.channelId,
       url: props.playUrl,
+      urlType: isWsUrl ? 'websocket' : isHttpUrl ? 'http' : 'unknown',
       priority: props.priority,
       mseSupported,
       h264Supported,

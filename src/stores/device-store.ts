@@ -122,11 +122,31 @@ export const useWVPStore = defineStore('wvp', () => {
     
     const streamContent = await wvpApi.value.startPlay(deviceId, channelId)
     
-    const playUrl = streamContent.ws_flv || streamContent.flv || streamContent.hls
+    logger.info('wvp', `收到流地址`, {
+      deviceId,
+      channelId,
+      flv: streamContent.flv,
+      ws_flv: streamContent.ws_flv,
+      hls: streamContent.hls
+    })
+    
+    // 优先使用 HTTP-FLV（更稳定），其次是 WS-FLV
+    // 注意：ws_flv 需要认证头，mpegts.js 默认不传递
+    let playUrl = streamContent.flv || streamContent.ws_flv || streamContent.hls
     
     if (!playUrl) {
       throw new Error('No playable URL available')
     }
+    
+    // 如果是 ws_flv，需要拼接 token
+    if (playUrl === streamContent.ws_flv && wvpApi.value) {
+      const token = wvpApi.value.getToken()
+      if (token && !playUrl.includes('token=')) {
+        playUrl = `${playUrl}?token=${token}`
+      }
+    }
+    
+    logger.info('wvp', `最终播放地址`, { playUrl })
     
     selectedChannels.value[emptySlotIndex] = {
       deviceId,

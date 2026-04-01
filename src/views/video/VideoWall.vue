@@ -16,13 +16,14 @@ const loading = ref(false)
 const loadingChannels = ref<Set<string>>(new Set())
 const expandedDevices = ref<Set<string>>(new Set())
 const toastInstance = ref<any>(null)
-const filterStatus = ref<'all' | 'online' | 'offline'>('all')
-const isFullscreen = ref(false)
+const filterStatus = ref<'all' | 'online' | 'offline'>('all') // 筛选状态
+const isFullscreen = ref(false) // 全屏状态
 
 const maxSlots = computed(() => {
   return store.currentLayout === '3x3' ? 9 : 16
 })
 
+// 根据筛选条件过滤设备
 const filteredDevices = computed(() => {
   if (filterStatus.value === 'all') {
     return store.devices
@@ -105,34 +106,20 @@ async function stopAll() {
   }
 }
 
-// 全屏模式：整个应用全屏，只显示 Grid
+// 全屏切换
 function toggleFullscreen() {
-  if (!isFullscreen.value) {
-    // 进入全屏
+  if (!document.fullscreenElement) {
     document.documentElement.requestFullscreen()
     isFullscreen.value = true
   } else {
-    // 退出全屏
     document.exitFullscreen()
     isFullscreen.value = false
   }
 }
 
-// ESC 退出全屏
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Escape' && isFullscreen.value) {
-    isFullscreen.value = false
-  }
-}
-
-// 预留：切换清晰度
-function handleChangeQuality() {
-  toast.info('切换清晰度功能开发中')
-}
-
-// 预留：刷新流
-function handleRefreshStream() {
-  toast.info('刷新流功能开发中')
+// 监听全屏变化
+function handleFullscreenChange() {
+  isFullscreen.value = !!document.fullscreenElement
 }
 
 onMounted(() => {
@@ -140,19 +127,19 @@ onMounted(() => {
     toast.setToastInstance(toastInstance.value)
   }
   loadDevices()
-  document.addEventListener('keydown', handleKeydown)
+  document.addEventListener('fullscreenchange', handleFullscreenChange)
 })
 
 onBeforeUnmount(() => {
   store.stopAllChannels()
-  document.removeEventListener('keydown', handleKeydown)
+  document.removeEventListener('fullscreenchange', handleFullscreenChange)
 })
 </script>
 
 <template>
   <div class="h-screen flex flex-col bg-background overflow-hidden">
-    <!-- 固定 Toolbar（全屏时隐藏） -->
-    <div v-show="!isFullscreen" class="flex-shrink-0 flex items-center justify-between p-4 border-b bg-background z-10">
+    <!-- 固定 Toolbar -->
+    <div class="flex-shrink-0 flex items-center justify-between p-4 border-b bg-background z-10">
       <div class="flex items-center gap-4">
         <h2 class="text-lg font-semibold">视频墙</h2>
         
@@ -163,7 +150,7 @@ onBeforeUnmount(() => {
       <div class="flex items-center gap-2">
         <!-- 设备状态筛选 -->
         <Select v-model="filterStatus">
-          <SelectTrigger class="w-[110px]">
+          <SelectTrigger class="w-[100px]">
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
@@ -201,10 +188,10 @@ onBeforeUnmount(() => {
     <!-- Toast 组件 -->
     <Toast ref="toastInstance" />
 
-<!-- Main Content -->
-    <div class="flex-1 flex overflow-hidden relative">
-      <!-- 固定宽度侧边栏（全屏时隐藏） -->
-      <div v-show="!isFullscreen" class="flex-shrink-0 w-64 border-r bg-background overflow-hidden flex flex-col">
+    <!-- Main Content -->
+    <div class="flex-1 flex overflow-hidden">
+      <!-- 固定宽度侧边栏，内部滚动 -->
+      <div class="flex-shrink-0 w-64 border-r bg-background overflow-hidden flex flex-col">
         <div class="flex-1 overflow-y-auto p-4 scrollbar-hide">
           <div v-if="loading" class="flex items-center justify-center h-32">
             <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -258,54 +245,22 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-<!-- 视频网格区域 -->
-      <div class="flex-1 overflow-hidden relative" :class="isFullscreen ? 'p-0' : 'p-4'">
-        <!-- 全屏模式：浮动工具栏 -->
+      <!-- 视频网格区域 -->
+      <div class="flex-1 p-4 overflow-hidden relative">
+        <!-- Loading 遮罩 -->
         <div 
-          v-if="isFullscreen" 
-          class="absolute top-0 left-0 right-0 p-3 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent z-20"
+          v-if="isConnecting" 
+          class="absolute inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center"
         >
-          <div class="flex items-center gap-2">
-            <MemoryStats :player-count="store.selectedChannels.length" />
-          </div>
-          
-          <div class="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              @click="handleChangeQuality"
-              class="bg-white/10 border-white/30 text-white hover:bg-white/20"
-            >
-              切换清晰度
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              @click="handleRefreshStream"
-              class="bg-white/10 border-white/30 text-white hover:bg-white/20"
-            >
-              刷新流
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              @click="stopAll"
-              :disabled="store.selectedChannels.length === 0"
-              class="bg-white/10 border-white/30 text-white hover:bg-white/20"
-            >
-              停止全部
-            </Button>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              @click="toggleFullscreen"
-              class="bg-white/10 border-white/30 text-white hover:bg-white/20"
-            >
-              退出全屏
-            </Button>
+          <div class="flex flex-col items-center gap-4">
+            <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+            <div class="flex flex-col items-center gap-2">
+              <p class="text-sm font-medium">正在连接播放</p>
+              <p class="text-xs text-muted-foreground">请稍候，避免误触...</p>
+            </div>
           </div>
         </div>
-
+        
         <div v-if="store.selectedChannels.length === 0" class="flex items-center justify-center h-full">
           <p class="text-muted-foreground">点击左侧设备通道开始播放</p>
         </div>

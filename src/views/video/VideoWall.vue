@@ -250,7 +250,7 @@ onBeforeUnmount(() => {
       </div>
 
 <!-- 视频网格区域 -->
-      <div class="flex-1 p-4 overflow-hidden">
+      <div class="flex-1 p-4 overflow-hidden relative">
         <!-- Loading Overlay -->
         <div 
           v-if="isConnecting" 
@@ -269,8 +269,9 @@ onBeforeUnmount(() => {
           <p class="text-muted-foreground">点击左侧设备通道开始播放</p>
         </div>
 
-<!-- 固定网格布局：每个格子均分 -->
+        <!-- 固定网格布局：每个格子均分 -->
         <div 
+          v-else
           class="grid gap-2 h-full w-full"
           :class="store.currentLayout === '3x3' ? 'grid-cols-3 grid-rows-3' : 'grid-cols-4 grid-rows-4'"
         >
@@ -295,7 +296,6 @@ onBeforeUnmount(() => {
           >
             <span class="text-muted-foreground/50 text-sm">点击左侧添加</span>
           </div>
-        </div>
         </div>
       </div>
     </div>

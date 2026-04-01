@@ -63,11 +63,20 @@ export const useWVPStore = defineStore('wvp', () => {
       throw new Error('WVP not initialized')
     }
     
-    if (selectedChannels.value.length >= maxChannels.value) {
-      const removed = selectedChannels.value.shift()
-      if (removed) {
-        await wvpApi.value.stopPlay(removed.deviceId, removed.channelId)
-      }
+    // 限制最多16路
+    if (selectedChannels.value.length >= 16) {
+      throw new Error('已达到最大播放路数（16路）')
+    }
+    
+    // 达到16路时提示
+    if (selectedChannels.value.length === 15) {
+      console.warn('已达到16路上限，下一个将替换最早的播放')
+    }
+    
+    // 超过9路自动切换到4x4
+    if (selectedChannels.value.length === 9 && currentLayout.value === '3x3') {
+      currentLayout.value = '4x4'
+      console.log('自动切换到4x4布局')
     }
     
     const streamContent = await wvpApi.value.startPlay(deviceId, channelId)
@@ -88,6 +97,17 @@ export const useWVPStore = defineStore('wvp', () => {
       playerIndex: selectedChannels.value.length,
       reconnectCount: 0
     })
+    
+    // 少于等于9路自动切换回3x3
+    if (selectedChannels.value.length <= 9 && currentLayout.value === '4x4') {
+      // 延迟切换，避免频繁切换
+      setTimeout(() => {
+        if (selectedChannels.value.length <= 9) {
+          currentLayout.value = '3x3'
+          console.log('自动切换回3x3布局')
+        }
+      }, 500)
+    }
   }
 
   async function stopChannel(index: number) {

@@ -53,6 +53,7 @@ declare module 'vue' {
     DropdownMenuSubTrigger: typeof import('./components/ui/dropdown-menu/DropdownMenuSubTrigger.vue')['default']
     DropdownMenuTrigger: typeof import('./components/ui/dropdown-menu/DropdownMenuTrigger.vue')['default']
     Input: typeof import('./components/ui/input/Input.vue')['default']
+    MemoryStats: typeof import('./components/VideoPlayer/MemoryStats.vue')['default']
     MpegtsPlayer: typeof import('./components/VideoPlayer/MpegtsPlayer.vue')['default']
     Progress: typeof import('./components/ui/progress/Progress.vue')['default']
     RouterLink: typeof import('vue-router')['RouterLink']

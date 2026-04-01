@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useWVPStore } from '@/stores/device-store'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import StreamPlayer from '@/components/VideoPlayer/StreamPlayer.vue'
+import MemoryStats from '@/components/VideoPlayer/MemoryStats.vue'
 
 const store = useWVPStore()
 
@@ -62,10 +67,16 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="h-screen flex flex-col bg-background">
+  <div class="h-screen flex flex-col bg-background overflow-hidden">
     <!-- 固定 Toolbar -->
     <div class="flex-shrink-0 flex items-center justify-between p-4 border-b bg-background z-10">
-      <h2 class="text-lg font-semibold">视频墙</h2>
+      <div class="flex items-center gap-4">
+        <h2 class="text-lg font-semibold">视频墙</h2>
+        
+        <!-- 内存统计 -->
+        <MemoryStats :player-count="store.selectedChannels.length" />
+      </div>
+      
       <div class="flex items-center gap-2">
         <Select v-model="store.currentLayout">
           <SelectTrigger class="w-[120px]">
@@ -96,7 +107,7 @@ onBeforeUnmount(() => {
     <div class="flex-1 flex overflow-hidden">
       <!-- 固定宽度侧边栏，内部滚动 -->
       <div class="flex-shrink-0 w-64 border-r bg-background overflow-hidden flex flex-col">
-        <div class="flex-1 overflow-y-auto p-4">
+        <div class="flex-1 overflow-y-auto p-4 custom-scrollbar">
           <div v-if="loading" class="flex items-center justify-center h-32">
             <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
@@ -181,5 +192,32 @@ onBeforeUnmount(() => {
 <style scoped>
 .grid {
   auto-rows-fr: 1fr;
+}
+
+/* 隐藏默认滚动条，保留滚动功能 */
+.custom-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+
+.custom-scrollbar:hover {
+  scrollbar-color: rgba(155, 155, 155, 0.5) transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background-color: transparent;
+  border-radius: 3px;
+}
+
+.custom-scrollbar:hover::-webkit-scrollbar-thumb {
+  background-color: rgba(155, 155, 155, 0.5);
 }
 </style>

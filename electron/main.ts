@@ -310,11 +310,25 @@ ipcMain.handle('get-system-stats', async () => {
     // GPU 进程可能不存在
   }
   
+  // 所有进程总内存
+  let totalProcessMemory = 0
+  try {
+    const appMetrics = app.getAppMetrics()
+    appMetrics.forEach(process => {
+      if (process.memory && process.memory.workingSetSize) {
+        totalProcessMemory += process.memory.workingSetSize
+      }
+    })
+  } catch (error) {
+    totalProcessMemory = memoryUsage.rss
+  }
+  
   return {
     mainMemory: memoryUsage.rss,     // 主进程内存
     heapUsed: memoryUsage.heapUsed,  // 堆使用
     gpuMemory: gpuMemory,            // GPU 内存
     cpuPercent: cpuPercent,          // CPU 占用百分比
+    totalProcessMemory: totalProcessMemory, // 所有进程总内存
     timestamp: Date.now()
   }
 });

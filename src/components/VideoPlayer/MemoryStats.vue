@@ -11,7 +11,7 @@ interface SystemStats {
   mainMemory: number        // 主进程内存
   gpuMemory: number         // GPU 内存
   cpuPercent: number        // CPU 占用百分比
-  totalMemory: number       // 总内存
+  totalMemory: number       // 总内存（所有进程之和）
 }
 
 const stats = ref<SystemStats>({
@@ -31,20 +31,22 @@ async function getSystemStats(): Promise<SystemStats> {
   let cpuPercent = 0
   let totalMemory = 0
 
-  // 1. 渲染进程内存
+  // 1. 渲染进程内存（当前窗口）
   const browserMemory = (performance as any).memory
   if (browserMemory) {
     rendererMemory = Math.round(browserMemory.usedJSHeapSize / 1024 / 1024)
-    totalMemory = Math.round(browserMemory.jsHeapSizeLimit / 1024 / 1024)
   }
 
-  // 2. 主进程和系统内存
+  // 2. 主进程、GPU、CPU 和所有进程总内存
   if (window.electronAPI?.getSystemStats) {
     try {
       const systemStats = await window.electronAPI.getSystemStats()
       mainMemory = Math.round(systemStats.mainMemory / 1024 / 1024)
       gpuMemory = Math.round(systemStats.gpuMemory / 1024 / 1024)
       cpuPercent = systemStats.cpuPercent || 0
+      
+      // 总内存 = 所有进程之和
+      totalMemory = Math.round(systemStats.totalProcessMemory / 1024 / 1024)
     } catch (error) {
       console.error('Failed to get system stats:', error)
     }
@@ -97,42 +99,18 @@ onBeforeUnmount(() => {
       </Badge>
     </div>
     
-    <!-- 渲染进程内存 -->
+    <!-- 总内存（所有进程） -->
     <div class="flex items-center gap-1.5">
-      <span class="text-muted-foreground">渲染:</span>
+      <span class="text-muted-foreground">总内存:</span>
       <Badge 
         variant="outline" 
-        :class="getMemoryClass(stats.rendererMemory)"
+        :class="getMemoryClass(stats.totalMemory)"
         class="font-mono"
       >
-        {{ stats.rendererMemory }} MB
+        {{ stats.totalMemory }} MB
       </Badge>
     </div>
 
-    <!-- 主进程内存 -->
-    <div class="flex items-center gap-1.5">
-      <span class="text-muted-foreground">主进程:</span>
-      <Badge 
-        variant="outline" 
-        :class="getMemoryClass(stats.mainMemory)"
-        class="font-mono"
-      >
-        {{ stats.mainMemory }} MB
-      </Badge>
-    </div>
-
-    <!-- GPU 内存 -->
-    <div v-if="stats.gpuMemory > 0" class="flex items-center gap-1.5">
-      <span class="text-muted-foreground">GPU:</span>
-      <Badge 
-        variant="outline" 
-        :class="getMemoryClass(stats.gpuMemory)"
-        class="font-mono"
-      >
-        {{ stats.gpuMemory }} MB
-      </Badge>
-    </div>
-    
     <!-- CPU 占用 -->
     <div class="flex items-center gap-1.5">
       <span class="text-muted-foreground">CPU:</span>

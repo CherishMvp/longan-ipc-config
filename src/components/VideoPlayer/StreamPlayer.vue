@@ -8,8 +8,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescript
 const props = defineProps<{
   deviceId: string
   channelId: string
-  priority: 'high' | 'normal' | 'low'
-  playUrl?: string  // 改为可选
+  priority?: 'high' | 'normal' | 'low'
+  playUrl?: string
+  streamContent?: any  // 支持协议降级
+  playerIndex: number
 }>()
 
 const emit = defineEmits<{
@@ -28,9 +30,36 @@ const hasShownError = ref(false) // 记录是否已显示过错误
 const hasLoadedUrl = ref(false)  // 记录是否已加载过 URL
 
 const bufferConfig = computed(() => {
-  if (props.priority === 'high') return { stashInitialSize: 2048 }
-  if (props.priority === 'normal') return { stashInitialSize: 1024 }
-  return { stashInitialSize: 512 }
+  if (props.priority === 'high') return { stashInitialSize: 2048 * 1024 }
+  if (props.priority === 'normal') return { stashInitialSize: 1024 * 1024 }
+  return { stashInitialSize: 512 * 1024 }
+})
+
+// 暴露给健康监控的方法
+function getStats() {
+  return {
+    bitrate: player?.statisticsInfo?.speed || 0,
+    bufferedLength: player?.bufferedLength || 0
+  }
+}
+
+function triggerReconnect() {
+  if (!isConnecting.value) {
+    handleReconnect()
+  }
+}
+
+function getStatus() {
+  if (isError.value) return 'error'
+  if (isConnecting.value) return retryCount.value > 0 ? 'reconnecting' : 'connecting'
+  return 'playing'
+}
+
+defineExpose({
+  getStats,
+  triggerReconnect,
+  getStatus,
+  updateSignalQuality
 })
 
 onMounted(() => {

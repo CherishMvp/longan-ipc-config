@@ -117,4 +117,21 @@
   body {
     @apply bg-background text-foreground;
   }
+  
+  /* 隐藏滚动条 - Chrome/Electron */
+  ::-webkit-scrollbar {
+    width: 0px;
+    background: transparent;
+  }
+  
+  /* 隐藏滚动条 - Firefox */
+  body, main, aside, .scroll-container {
+    scrollbar-width: none;
+  }
+  
+  body::-webkit-scrollbar,
+  main::-webkit-scrollbar,
+  aside::-webkit-scrollbar {
+    width: 0px;
+  }
 }

@@ -1,16 +1,18 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 import mpegts from 'mpegts.js'
+import { useLogger } from '@/composables/useLogger'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog'
 
+const logger = useLogger()
 const props = defineProps<{
   deviceId: string
   channelId: string
   priority?: 'high' | 'normal' | 'low'
   playUrl?: string
-  streamContent?: any  // 支持协议降级
+  streamContent?: any
   playerIndex: number
 }>()
 
@@ -75,7 +77,6 @@ onUnmounted(() => {
 })
 
 async function initPlayer() {
-  // 如果没有播放地址且没有加载过，请求父组件获取
   if (!props.playUrl && !hasLoadedUrl.value) {
     hasLoadedUrl.value = true
     emit('request-url')
@@ -83,11 +84,17 @@ async function initPlayer() {
     return
   }
   
-  // 如果仍然没有地址，跳过
   if (!props.playUrl) {
     isConnecting.value = false
     return
   }
+
+  logger.info('player', `初始化播放器 [${props.playerIndex}]`, {
+    deviceId: props.deviceId,
+    channelId: props.channelId,
+    url: props.playUrl,
+    priority: props.priority
+  })
 
   try {
     isConnecting.value = true
@@ -113,10 +120,16 @@ async function initPlayer() {
 
     player.load()
     await player.play()
-  } catch (error) {
-    console.error('Player init failed:', error)
+    
+    logger.info('player', `播放器启动成功 [${props.playerIndex}]`)
+  } catch (error: any) {
+    logger.error('player', `播放器初始化失败 [${props.playerIndex}]`, {
+      error: error.message,
+      deviceId: props.deviceId,
+      channelId: props.channelId
+    })
     isError.value = true
-    hasShownError.value = true  // 不再显示错误
+    hasShownError.value = true
     emit('error', error as Error)
   }
 }
@@ -133,9 +146,14 @@ function handlePlayerError() {
 function handleReconnect() {
   retryCount.value++
   isConnecting.value = true
-  emit('reconnect')
   
-  // 保留最后一帧，静默重连
+  logger.warn('player', `播放器重连 [${props.playerIndex}]`, {
+    retryCount: retryCount.value,
+    deviceId: props.deviceId,
+    channelId: props.channelId
+  })
+  
+  emit('reconnect')
   setTimeout(() => initPlayer(), 2000)
 }
 

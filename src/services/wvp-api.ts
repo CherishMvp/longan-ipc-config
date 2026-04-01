@@ -31,6 +31,19 @@ export interface WVPResult<T> {
   data: T
 }
 
+let loggerInstance: any = null
+
+export function setWVPLogger(logger: any) {
+  loggerInstance = logger
+}
+
+function log(level: 'info' | 'warn' | 'error', message: string, data?: any) {
+  if (loggerInstance) {
+    loggerInstance[level]('wvp', message, data)
+  }
+  console.log(`[WVP][${level.toUpperCase()}] ${message}`, data || '')
+}
+
 export class WVPApiService {
   private baseUrl: string
   private token: string = ''
@@ -40,6 +53,7 @@ export class WVPApiService {
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl
+    log('info', `WVP API Service 创建`, { baseUrl })
   }
 
   setToken(token: string): void {
@@ -50,27 +64,38 @@ export class WVPApiService {
     this.username = username
     this.password = password
     
+    log('info', `尝试登录 WVP`, { baseUrl: this.baseUrl, username })
+    
     const md5Password = CryptoJS.MD5(password).toString()
     
-    const res = await fetch(
-      `${this.baseUrl}/api/user/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(md5Password)}`,
-      { method: 'GET' }
-    )
-    
-    if (!res.ok) {
-      throw new Error(`Login failed: ${res.statusText}`)
+    try {
+      const res = await fetch(
+        `${this.baseUrl}/api/user/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(md5Password)}`,
+        { method: 'GET' }
+      )
+      
+      if (!res.ok) {
+        log('error', `登录失败: HTTP ${res.status}`, { status: res.statusText })
+        throw new Error(`Login failed: ${res.statusText}`)
+      }
+      
+      const data: WVPResult<{ accessToken: string }> = await res.json()
+      
+      if (data.code !== 0) {
+        log('error', `登录失败: ${data.msg}`, { code: data.code })
+        throw new Error(`Login failed: ${data.msg}`)
+      }
+      
+      this.token = data.data.accessToken
+      this.tokenExpireTime = Date.now() + 3600000
+      
+      log('info', `WVP 登录成功`, { token: this.token.substring(0, 20) + '...' })
+      
+      return this.token
+    } catch (e: any) {
+      log('error', `登录异常`, { error: e.message })
+      throw e
     }
-    
-    const data: WVPResult<{ accessToken: string }> = await res.json()
-    
-    if (data.code !== 0) {
-      throw new Error(`Login failed: ${data.msg}`)
-    }
-    
-    this.token = data.data.accessToken
-    this.tokenExpireTime = Date.now() + 3600000 // 1小时
-    
-    return this.token
   }
 
   getToken(): string {
@@ -78,7 +103,8 @@ export class WVPApiService {
   }
 
   private async refreshTokenIfNeeded(): Promise<void> {
-    if (Date.now() > this.tokenExpireTime - 300000) { // 5分钟前刷新
+    if (Date.now() > this.tokenExpireTime - 300000) {
+      log('warn', `Token 即将过期，刷新中...`)
       await this.login(this.username, this.password)
     }
   }
@@ -93,83 +119,116 @@ export class WVPApiService {
   async getDevices(): Promise<WVPDevice[]> {
     await this.refreshTokenIfNeeded()
     
-    const res = await fetch(`${this.baseUrl}/api/v1/device/list`, {
-      headers: this.getAuthHeaders()
-    })
+    log('info', `获取设备列表`)
     
-    if (!res.ok) {
-      throw new Error(`Get devices failed: ${res.statusText}`)
+    try {
+      const res = await fetch(`${this.baseUrl}/api/v1/device/list`, {
+        headers: this.getAuthHeaders()
+      })
+      
+      if (!res.ok) {
+        log('error', `获取设备失败: HTTP ${res.status}`)
+        throw new Error(`Get devices failed: ${res.statusText}`)
+      }
+      
+      const data = await res.json()
+      const deviceList = data.DeviceList || data.data?.list || []
+      
+      const devices = deviceList.map((device: any) => ({
+        deviceId: device.ID || device.deviceId,
+        name: device.Name || device.name || 'Unknown',
+        status: device.Online || device.online ? 'online' : 'offline',
+        channels: []
+      }))
+      
+      log('info', `获取设备成功`, { count: devices.length })
+      
+      return devices
+    } catch (e: any) {
+      log('error', `获取设备异常`, { error: e.message })
+      throw e
     }
-    
-    const data = await res.json()
-    const deviceList = data.DeviceList || data.data?.list || []
-    
-    return deviceList.map((device: any) => ({
-      deviceId: device.ID || device.deviceId,
-      name: device.Name || device.name || 'Unknown',
-      // WVP 设备状态映射：Online字段为boolean或数字
-      status: device.Online || device.online ? 'online' : 'offline',
-      channels: []
-    }))
   }
 
   async getChannels(deviceId: string): Promise<WVPChannel[]> {
     await this.refreshTokenIfNeeded()
     
-    const res = await fetch(
-      `${this.baseUrl}/api/v1/device/channellist?serial=${encodeURIComponent(deviceId)}`,
-      { headers: this.getAuthHeaders() }
-    )
+    log('info', `获取通道列表`, { deviceId })
     
-    if (!res.ok) {
-      throw new Error(`Get channels failed: ${res.statusText}`)
+    try {
+      const res = await fetch(
+        `${this.baseUrl}/api/v1/device/channellist?serial=${encodeURIComponent(deviceId)}`,
+        { headers: this.getAuthHeaders() }
+      )
+      
+      if (!res.ok) {
+        log('error', `获取通道失败: HTTP ${res.status}`, { deviceId })
+        throw new Error(`Get channels failed: ${res.statusText}`)
+      }
+      
+      const data = await res.json()
+      const channelList = data.ChannelList || data.data?.list || []
+      
+      const channels = channelList.map((channel: any) => ({
+        channelId: channel.ID || channel.channelId,
+        name: channel.Name || channel.name || 'Unknown',
+        status: channel.Status === 'ON' || channel.status === 'ON' ? 'online' : 'offline'
+      }))
+      
+      log('info', `获取通道成功`, { deviceId, count: channels.length })
+      
+      return channels
+    } catch (e: any) {
+      log('error', `获取通道异常`, { deviceId, error: e.message })
+      throw e
     }
-    
-    const data = await res.json()
-    const channelList = data.ChannelList || data.data?.list || []
-    
-    return channelList.map((channel: any) => ({
-      channelId: channel.ID || channel.channelId,
-      name: channel.Name || channel.name || 'Unknown',
-      // WVP 返回 status: "ON" | "OFF"，映射为 online | offline
-      // 注意：后续版本可能会移除此限制，允许离线通道也可点播
-      status: channel.Status === 'ON' || channel.status === 'ON' ? 'online' : 'offline'
-    }))
   }
 
-  /**
-   * 开始点播（使用正确的 WVP API）
-   * 这是关键的修正：使用 /api/play/start 而不是 /api/media/getPlayUrl
-   */
   async startPlay(
     deviceId: string, 
     channelId: string
   ): Promise<StreamContent> {
     await this.refreshTokenIfNeeded()
     
-    const res = await fetch(
-      `${this.baseUrl}/api/play/start/${deviceId}/${channelId}`,
-      { headers: this.getAuthHeaders() }
-    )
+    log('info', `开始点播`, { deviceId, channelId })
     
-    if (!res.ok) {
-      throw new Error(`Play start failed: ${res.statusText}`)
+    try {
+      const res = await fetch(
+        `${this.baseUrl}/api/play/start/${deviceId}/${channelId}`,
+        { headers: this.getAuthHeaders() }
+      )
+      
+      if (!res.ok) {
+        log('error', `点播失败: HTTP ${res.status}`, { deviceId, channelId })
+        throw new Error(`Play start failed: ${res.statusText}`)
+      }
+      
+      const data: WVPResult<StreamContent> = await res.json()
+      
+      if (data.code !== 0) {
+        log('error', `点播失败: ${data.msg}`, { deviceId, channelId, code: data.code })
+        throw new Error(`Play start failed: ${data.msg}`)
+      }
+      
+      log('info', `点播成功`, {
+        deviceId,
+        channelId,
+        flv: data.data.flv,
+        ws_flv: data.data.ws_flv,
+        hls: data.data.hls
+      })
+      
+      return data.data
+    } catch (e: any) {
+      log('error', `点播异常`, { deviceId, channelId, error: e.message })
+      throw e
     }
-    
-    const data: WVPResult<StreamContent> = await res.json()
-    
-    if (data.code !== 0) {
-      throw new Error(`Play start failed: ${data.msg}`)
-    }
-    
-    return data.data
   }
 
-  /**
-   * 停止点播（使用正确的 WVP API）
-   */
   async stopPlay(deviceId: string, channelId: string): Promise<void> {
     await this.refreshTokenIfNeeded()
+    
+    log('info', `停止点播`, { deviceId, channelId })
     
     await fetch(
       `${this.baseUrl}/api/play/stop/${deviceId}/${channelId}`,
@@ -183,7 +242,8 @@ export class WVPApiService {
     command: string,
     speed: number = 50
   ): Promise<void> {
-    // 需要根据实际 API 调整
+    log('info', `PTZ 控制`, { deviceId, channelId, command, speed })
+    
     await fetch(`${this.baseUrl}/api/v1/device/ptz`, {
       method: 'POST',
       headers: this.getAuthHeaders(),

@@ -1,7 +1,11 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
-import { WVPApiService, WVPDevice, StreamContent } from '@/services/wvp-api'
+import { WVPApiService, WVPDevice, StreamContent, setWVPLogger } from '@/services/wvp-api'
 import { useSettingsStore } from './settings'
+import { useLogger } from '@/composables/useLogger'
+
+const logger = useLogger()
+setWVPLogger(logger)
 
 export interface SelectedChannel {
   deviceId: string
@@ -39,21 +43,30 @@ export const useWVPStore = defineStore('wvp', () => {
     const finalUsername = username || settingsStore.wvpConfig.username
     const finalPassword = password || settingsStore.wvpConfig.password
     
+    logger.info('wvp', `初始化 WVP`, {
+      baseUrl: finalBaseUrl,
+      username: finalUsername,
+      enabled: settingsStore.wvpConfig.enabled
+    })
+    
     wvpBaseUrl.value = finalBaseUrl
     wvpApi.value = new WVPApiService(finalBaseUrl)
     
     const token = await wvpApi.value.login(finalUsername, finalPassword)
     wvpConnected.value = true
     
+    logger.info('wvp', `WVP 初始化成功`)
     console.log('WVP initialized, token:', token)
   }
 
   async function loadDevices() {
     if (!wvpApi.value || !wvpConnected.value) {
+      logger.error('wvp', `WVP 未连接，无法加载设备`)
       throw new Error('WVP not connected')
     }
     
-    // 清空旧数据，确保刷新时状态更新
+    logger.info('wvp', `开始加载设备列表`)
+    
     devices.value = []
     
     const deviceList = await wvpApi.value.getDevices()
@@ -61,13 +74,17 @@ export const useWVPStore = defineStore('wvp', () => {
     for (const device of deviceList) {
       try {
         device.channels = await wvpApi.value.getChannels(device.deviceId)
-      } catch (error) {
-        console.error(`Failed to get channels for ${device.deviceId}:`, error)
+      } catch (error: any) {
+        logger.warn('wvp', `获取设备通道失败`, {
+          deviceId: device.deviceId,
+          error: error.message
+        })
         device.channels = []
       }
     }
     
     devices.value = deviceList
+    logger.info('wvp', `设备列表加载完成`, { count: deviceList.length })
     console.log('Devices loaded:', deviceList.length, 'with channels')
   }
 

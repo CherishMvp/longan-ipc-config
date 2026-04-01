@@ -20,6 +20,7 @@ import { StreamService } from './StreamService'
 
 let mainWindow: BrowserWindow | null = null
 const streamService = new StreamService()
+const appStartTime = Date.now()  // 应用启动时间，用于 CPU 计算
 
 // Initialize Database
 const db = initDB()
@@ -284,6 +285,37 @@ ipcMain.handle('get-memory-usage', async () => {
     heapUsed: memoryUsage.heapUsed,   // V8 堆使用量
     external: memoryUsage.external,   // C++ 对象内存
     arrayBuffers: memoryUsage.arrayBuffers || 0
+  }
+})
+
+// System Stats (内存 + CPU + GPU)
+ipcMain.handle('get-system-stats', async () => {
+  const memoryUsage = process.memoryUsage()
+  
+  // CPU 占用计算
+  const cpuUsage = process.cpuUsage()
+  const cpuPercent = Math.round(
+    ((cpuUsage.user + cpuUsage.system) / 1000000 / (Date.now() - appStartTime) * 100)
+  )
+  
+  // GPU 内存（Electron 不直接提供，使用 appMetrics 估算）
+  let gpuMemory = 0
+  try {
+    const appMetrics = app.getAppMetrics()
+    const gpuProcess = appMetrics.find(p => p.type === 'GPU')
+    if (gpuProcess && gpuProcess.memory) {
+      gpuMemory = gpuProcess.memory.workingSetSize || 0
+    }
+  } catch (error) {
+    // GPU 进程可能不存在
+  }
+  
+  return {
+    mainMemory: memoryUsage.rss,     // 主进程内存
+    heapUsed: memoryUsage.heapUsed,  // 堆使用
+    gpuMemory: gpuMemory,            // GPU 内存
+    cpuPercent: cpuPercent,          // CPU 占用百分比
+    timestamp: Date.now()
   }
 });
 

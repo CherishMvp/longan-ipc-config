@@ -6,71 +6,73 @@ const props = defineProps<{
   playerCount: number
 }>()
 
-interface MemoryStats {
-  rss: number         // 驻留集大小（总物理内存）
-  heapTotal: number   // V8 堆总量
-  heapUsed: number    // V8 堆使用量
-  external: number    // C++ 对象内存
-  arrayBuffers: number // ArrayBuffer 内存
-  usedMB: number
-  totalMB: number
+interface SystemStats {
+  rendererMemory: number    // 渲染进程内存
+  mainMemory: number        // 主进程内存
+  gpuMemory: number         // GPU 内存
+  cpuPercent: number        // CPU 占用百分比
+  totalMemory: number       // 总内存
 }
 
-const memoryStats = ref<MemoryStats | null>(null)
+const stats = ref<SystemStats>({
+  rendererMemory: 0,
+  mainMemory: 0,
+  gpuMemory: 0,
+  cpuPercent: 0,
+  totalMemory: 0
+})
+
 const updateInterval = ref<number | null>(null)
 
-async function getElectronMemory(): Promise<MemoryStats | null> {
-  try {
-    // Electron 环境：通过 IPC 从主进程获取内存信息
-    if (window.electronAPI?.getMemoryUsage) {
-      const memory = await window.electronAPI.getMemoryUsage()
-      return {
-        rss: memory.rss,
-        heapTotal: memory.heapTotal,
-        heapUsed: memory.heapUsed,
-        external: memory.external,
-        arrayBuffers: memory.arrayBuffers || 0,
-        usedMB: Math.round(memory.heapUsed / 1024 / 1024),
-        totalMB: Math.round(memory.rss / 1024 / 1024)
-      }
+async function getSystemStats(): Promise<SystemStats> {
+  let rendererMemory = 0
+  let mainMemory = 0
+  let gpuMemory = 0
+  let cpuPercent = 0
+  let totalMemory = 0
+
+  // 1. 渲染进程内存
+  const browserMemory = (performance as any).memory
+  if (browserMemory) {
+    rendererMemory = Math.round(browserMemory.usedJSHeapSize / 1024 / 1024)
+    totalMemory = Math.round(browserMemory.jsHeapSizeLimit / 1024 / 1024)
+  }
+
+  // 2. 主进程和系统内存
+  if (window.electronAPI?.getSystemStats) {
+    try {
+      const systemStats = await window.electronAPI.getSystemStats()
+      mainMemory = Math.round(systemStats.mainMemory / 1024 / 1024)
+      gpuMemory = Math.round(systemStats.gpuMemory / 1024 / 1024)
+      cpuPercent = systemStats.cpuPercent || 0
+    } catch (error) {
+      console.error('Failed to get system stats:', error)
     }
-    
-    // 备用：Chrome/Edge 浏览器环境
-    const memory = (performance as any).memory
-    if (memory) {
-      return {
-        rss: memory.totalJSHeapSize,
-        heapTotal: memory.totalJSHeapSize,
-        heapUsed: memory.usedJSHeapSize,
-        external: 0,
-        arrayBuffers: 0,
-        usedMB: Math.round(memory.usedJSHeapSize / 1024 / 1024),
-        totalMB: Math.round(memory.jsHeapSizeLimit / 1024 / 1024)
-      }
-    }
-    
-    return null
-  } catch (error) {
-    console.error('Failed to get memory stats:', error)
-    return null
+  }
+
+  return {
+    rendererMemory,
+    mainMemory,
+    gpuMemory,
+    cpuPercent,
+    totalMemory
   }
 }
 
 async function updateStats() {
-  memoryStats.value = await getElectronMemory()
+  stats.value = await getSystemStats()
 }
 
-function getMemoryClass(usedMB: number): string {
-  if (usedMB < 500) return 'bg-green-500'
-  if (usedMB < 1000) return 'bg-yellow-500'
+function getMemoryClass(memoryMB: number): string {
+  if (memoryMB < 300) return 'bg-green-500'
+  if (memoryMB < 800) return 'bg-yellow-500'
   return 'bg-red-500'
 }
 
-function getUsagePercent(): number {
-  if (!memoryStats.value) return 0
-  // 使用 RSS（驻留集大小）作为实际内存占用
-  const percent = (memoryStats.value.heapUsed / memoryStats.value.rss) * 100
-  return Math.min(100, Math.round(percent))
+function getCPUClass(percent: number): string {
+  if (percent < 30) return 'bg-green-500'
+  if (percent < 60) return 'bg-yellow-500'
+  return 'bg-red-500'
 }
 
 onMounted(() => {
@@ -86,7 +88,7 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="flex items-center gap-3 text-xs font-mono">
+  <div class="flex items-center gap-4 text-xs font-mono">
     <!-- 播放路数 -->
     <div class="flex items-center gap-1.5">
       <span class="text-muted-foreground">播放:</span>
@@ -95,30 +97,51 @@ onBeforeUnmount(() => {
       </Badge>
     </div>
     
-    <!-- 内存占用 -->
-    <div v-if="memoryStats" class="flex items-center gap-1.5">
-      <span class="text-muted-foreground">内存:</span>
+    <!-- 渲染进程内存 -->
+    <div class="flex items-center gap-1.5">
+      <span class="text-muted-foreground">渲染:</span>
       <Badge 
         variant="outline" 
-        :class="getMemoryClass(memoryStats.usedMB)"
+        :class="getMemoryClass(stats.rendererMemory)"
         class="font-mono"
       >
-        {{ memoryStats.usedMB }} MB
+        {{ stats.rendererMemory }} MB
       </Badge>
-      <div class="w-16 h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-        <div 
-          class="h-full transition-all duration-500"
-          :class="getMemoryClass(memoryStats.usedMB)"
-          :style="{ width: `${getUsagePercent()}%` }"
-        />
-      </div>
+    </div>
+
+    <!-- 主进程内存 -->
+    <div class="flex items-center gap-1.5">
+      <span class="text-muted-foreground">主进程:</span>
+      <Badge 
+        variant="outline" 
+        :class="getMemoryClass(stats.mainMemory)"
+        class="font-mono"
+      >
+        {{ stats.mainMemory }} MB
+      </Badge>
+    </div>
+
+    <!-- GPU 内存 -->
+    <div v-if="stats.gpuMemory > 0" class="flex items-center gap-1.5">
+      <span class="text-muted-foreground">GPU:</span>
+      <Badge 
+        variant="outline" 
+        :class="getMemoryClass(stats.gpuMemory)"
+        class="font-mono"
+      >
+        {{ stats.gpuMemory }} MB
+      </Badge>
     </div>
     
-    <!-- 不支持内存 API 的提示 -->
-    <div v-else class="flex items-center gap-1.5">
-      <span class="text-muted-foreground">内存:</span>
-      <Badge variant="outline" class="font-mono text-muted-foreground">
-        N/A
+    <!-- CPU 占用 -->
+    <div class="flex items-center gap-1.5">
+      <span class="text-muted-foreground">CPU:</span>
+      <Badge 
+        variant="outline" 
+        :class="getCPUClass(stats.cpuPercent)"
+        class="font-mono"
+      >
+        {{ stats.cpuPercent }}%
       </Badge>
     </div>
   </div>

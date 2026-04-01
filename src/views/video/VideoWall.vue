@@ -287,7 +287,7 @@ onBeforeUnmount(() => {
           <div
             v-for="i in (maxSlots - store.selectedChannels.length)"
             :key="`empty-${i}`"
-            class="aspect-video bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30 flex items-center justify-center"
+            class="w-full h-full bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30 flex items-center justify-center"
           >
             <span class="text-muted-foreground/50 text-sm">点击左侧添加</span>
           </div>

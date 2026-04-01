@@ -146,8 +146,8 @@ onBeforeUnmount(() => {
             <div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
           </div>
 
-          <div v-else-if="error" class="text-red-400 text-sm p-2">
-            {{ error }}
+          <div v-else-if="store.devices.length === 0" class="text-muted-foreground text-sm p-2">
+            暂无设备
           </div>
 
           <div v-else class="space-y-2">

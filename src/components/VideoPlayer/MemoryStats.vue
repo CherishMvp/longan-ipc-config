@@ -20,7 +20,6 @@ const memoryStats = ref<MemoryStats | null>(null)
 const cpuUsage = ref<number>(0)
 let updateInterval: number | null = null
 let lastTime = performance.now()
-let lastCPUTime = 0
 
 function getMemoryStats(): MemoryStats | null {
   // Chrome/Edge 支持 performance.memory

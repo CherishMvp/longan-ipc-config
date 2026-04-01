@@ -183,7 +183,7 @@ function destroyPlayer() {
 
     <!-- 关闭按钮 -->
     <button
-      v-if="status === 'playing'"
+      v-if="!isConnecting && !isError"
       class="absolute top-2 left-2 z-10 p-1.5 bg-black/50 hover:bg-black/70 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity"
       @click="emit('close')"
       title="关闭"

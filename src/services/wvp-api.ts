@@ -31,15 +31,6 @@ export interface WVPResult<T> {
   data: T
 }
 
-export type Protocol = 'http-flv' | 'ws-flv' | 'webrtc'
-
-export interface PlayResponse {
-  url: string
-  type: Protocol
-  deviceId: string
-  channelId: string
-}
-
 export class WVPApiService {
   private baseUrl: string
   private token: string = ''
@@ -56,21 +47,40 @@ export class WVPApiService {
   }
 
   async login(username: string, password: string): Promise<string> {
-    // WVP 需要 MD5 加密密码 (32 位小写)
+    this.username = username
+    this.password = password
+    
     const md5Password = CryptoJS.MD5(password).toString()
     
-    // GET 请求到 /api/user/login，参数通过 query 传递
-    const res = await fetch(`${this.baseUrl}/api/user/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(md5Password)}`, {
-      method: 'GET'
-    })
+    const res = await fetch(
+      `${this.baseUrl}/api/user/login?username=${encodeURIComponent(username)}&password=${encodeURIComponent(md5Password)}`,
+      { method: 'GET' }
+    )
     
-    if (!res.ok) throw new Error(`Login failed: ${res.statusText}`)
+    if (!res.ok) {
+      throw new Error(`Login failed: ${res.statusText}`)
+    }
     
-    const data = await res.json()
-    // WVP 返回格式：{ code: 0, data: { accessToken: 'xxx', ... } }
-    this.token = data.data?.accessToken || data.data?.token || data.token || ''
-    if (!this.token) throw new Error('No token received')
+    const data: WVPResult<{ accessToken: string }> = await res.json()
+    
+    if (data.code !== 0) {
+      throw new Error(`Login failed: ${data.msg}`)
+    }
+    
+    this.token = data.data.accessToken
+    this.tokenExpireTime = Date.now() + 3600000 // 1小时
+    
     return this.token
+  }
+
+  getToken(): string {
+    return this.token
+  }
+
+  private async refreshTokenIfNeeded(): Promise<void> {
+    if (Date.now() > this.tokenExpireTime - 300000) { // 5分钟前刷新
+      await this.login(this.username, this.password)
+    }
   }
 
   private getAuthHeaders(): HeadersInit {
@@ -81,37 +91,41 @@ export class WVPApiService {
   }
 
   async getDevices(): Promise<WVPDevice[]> {
-    // GET /api/v1/device/list
+    await this.refreshTokenIfNeeded()
+    
     const res = await fetch(`${this.baseUrl}/api/v1/device/list`, {
       headers: this.getAuthHeaders()
     })
     
-    if (!res.ok) throw new Error(`Get devices failed: ${res.statusText}`)
+    if (!res.ok) {
+      throw new Error(`Get devices failed: ${res.statusText}`)
+    }
     
     const data = await res.json()
-    // WVP 返回格式：{ DeviceCount: 0, DeviceList: [...] }
-    const deviceList = data.DeviceList || data.data?.list || data.list || []
+    const deviceList = data.DeviceList || data.data?.list || []
     
-    // 转换为 WVPDevice 格式
     return deviceList.map((device: any) => ({
       deviceId: device.ID || device.deviceId,
       name: device.Name || device.name || 'Unknown',
       status: device.Online ? 'online' : 'offline',
-      channels: [] // 需要单独获取
+      channels: []
     }))
   }
 
   async getChannels(deviceId: string): Promise<WVPChannel[]> {
-    // GET /api/v1/device/channellist?serial={deviceId}
-    const res = await fetch(`${this.baseUrl}/api/v1/device/channellist?serial=${encodeURIComponent(deviceId)}`, {
-      headers: this.getAuthHeaders()
-    })
+    await this.refreshTokenIfNeeded()
     
-    if (!res.ok) throw new Error(`Get channels failed: ${res.statusText}`)
+    const res = await fetch(
+      `${this.baseUrl}/api/v1/device/channellist?serial=${encodeURIComponent(deviceId)}`,
+      { headers: this.getAuthHeaders() }
+    )
+    
+    if (!res.ok) {
+      throw new Error(`Get channels failed: ${res.statusText}`)
+    }
     
     const data = await res.json()
-    // WVP 返回格式：{ ChannelCount: 0, ChannelList: [...] }
-    const channelList = data.ChannelList || data.data?.list || data.list || []
+    const channelList = data.ChannelList || data.data?.list || []
     
     return channelList.map((channel: any) => ({
       channelId: channel.ID || channel.channelId,
@@ -120,33 +134,44 @@ export class WVPApiService {
     }))
   }
 
-  async getPlayUrl(
+  /**
+   * 开始点播（使用正确的 WVP API）
+   * 这是关键的修正：使用 /api/play/start 而不是 /api/media/getPlayUrl
+   */
+  async startPlay(
     deviceId: string, 
-    channelId: string, 
-    _protocol: Protocol = 'http-flv'
-  ): Promise<string> {
-    // 使用 /api/media/getPlayUrl 接口
-    // app 通常是 live，stream 是 deviceId_channelId
-    const app = 'live'
-    const stream = `${deviceId}_${channelId}`
-    const res = await fetch(`${this.baseUrl}/api/media/getPlayUrl?app=${encodeURIComponent(app)}&stream=${encodeURIComponent(stream)}`, {
-      method: 'GET',
-      headers: this.getAuthHeaders()
-    })
+    channelId: string
+  ): Promise<StreamContent> {
+    await this.refreshTokenIfNeeded()
     
-    if (!res.ok) throw new Error(`Get play URL failed: ${res.statusText}`)
+    const res = await fetch(
+      `${this.baseUrl}/api/play/start/${deviceId}/${channelId}`,
+      { headers: this.getAuthHeaders() }
+    )
     
-    const data = await res.json()
-    // 需要从返回数据中提取播放地址
-    // WVP 返回格式可能包含 http-flv, ws-flv, hls 等地址
-    return data.data?.httpFlvUrl || data.data?.wsFlvUrl || data.data?.url || ''
+    if (!res.ok) {
+      throw new Error(`Play start failed: ${res.statusText}`)
+    }
+    
+    const data: WVPResult<StreamContent> = await res.json()
+    
+    if (data.code !== 0) {
+      throw new Error(`Play start failed: ${data.msg}`)
+    }
+    
+    return data.data
   }
 
+  /**
+   * 停止点播（使用正确的 WVP API）
+   */
   async stopPlay(deviceId: string, channelId: string): Promise<void> {
-    await fetch(`${this.baseUrl}/bus/localMedia/stopMedia/${deviceId}_${channelId}`, {
-      method: 'PUT',
-      headers: this.getAuthHeaders()
-    })
+    await this.refreshTokenIfNeeded()
+    
+    await fetch(
+      `${this.baseUrl}/api/play/stop/${deviceId}/${channelId}`,
+      { headers: this.getAuthHeaders() }
+    )
   }
 
   async ptzControl(

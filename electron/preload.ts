@@ -6,7 +6,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   
   // Memory Stats
   getMemoryUsage: () => ipcRenderer.invoke('get-memory-usage'),
-  getSystemStats: () => ipcRenderer.invoke('get-system-stats'),
 
   // Discovery
   startScan: (options?: any) => ipcRenderer.invoke('start-scan', options),

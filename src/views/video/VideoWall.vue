@@ -23,16 +23,11 @@ const maxSlots = computed(() => {
   return store.currentLayout === '3x3' ? 9 : 16
 })
 
-// 根据筛选条件过滤设备
 const filteredDevices = computed(() => {
   if (filterStatus.value === 'all') {
     return store.devices
   }
   return store.devices.filter(device => device.status === filterStatus.value)
-})
-
-const isConnecting = computed(() => {
-  return loadingChannels.value.size > 0
 })
 
 const isConnecting = computed(() => {

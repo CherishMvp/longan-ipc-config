@@ -13,9 +13,11 @@ export interface SelectedChannel {
   reconnectCount: number
 }
 
+export type ChannelSlot = SelectedChannel | null
+
 export const useWVPStore = defineStore('wvp', () => {
   const devices = ref<WVPDevice[]>([])
-  const selectedChannels = ref<SelectedChannel[]>([])
+  const selectedChannels = ref<ChannelSlot[]>(Array(16).fill(null))
   const currentLayout = ref<'3x3' | '4x4'>('3x3')
   const wvpApi = ref<WVPApiService | null>(null)
   const wvpConnected = ref(false)
@@ -23,6 +25,10 @@ export const useWVPStore = defineStore('wvp', () => {
 
   const maxChannels = computed(() => {
     return currentLayout.value === '3x3' ? 9 : 16
+  })
+
+  const activeChannels = computed(() => {
+    return selectedChannels.value.filter(c => c !== null) as SelectedChannel[]
   })
 
   async function initializeWVP(baseUrl: string, username: string = 'admin', password: string = 'admin') {
@@ -63,18 +69,29 @@ export const useWVPStore = defineStore('wvp', () => {
       throw new Error('WVP not initialized')
     }
     
-    // 限制最多16路
-    if (selectedChannels.value.length >= 16) {
-      throw new Error('已达到最大播放路数（16路）')
+    const maxSlots = currentLayout.value === '3x3' ? 9 : 16
+    
+    // 找到第一个空的 slot
+    let emptySlotIndex = -1
+    for (let i = 0; i < maxSlots; i++) {
+      if (selectedChannels.value[i] === null) {
+        emptySlotIndex = i
+        break
+      }
+    }
+    
+    if (emptySlotIndex === -1) {
+      throw new Error('已达到最大播放路数')
     }
     
     // 达到16路时提示
-    if (selectedChannels.value.length === 15) {
+    const activeCount = selectedChannels.value.filter(c => c !== null).length
+    if (activeCount === 15) {
       console.warn('已达到16路上限，下一个将替换最早的播放')
     }
     
     // 超过9路自动切换到4x4
-    if (selectedChannels.value.length === 9 && currentLayout.value === '3x3') {
+    if (activeCount === 8 && currentLayout.value === '3x3') {
       currentLayout.value = '4x4'
       console.log('自动切换到4x4布局')
     }
@@ -87,22 +104,22 @@ export const useWVPStore = defineStore('wvp', () => {
       throw new Error('No playable URL available')
     }
     
-    selectedChannels.value.push({
+    selectedChannels.value[emptySlotIndex] = {
       deviceId,
       channelId,
       name: `${deviceId}/${channelId}`,
       playUrl,
       streamContent,
       status: 'connecting',
-      playerIndex: selectedChannels.value.length,
+      playerIndex: emptySlotIndex,
       reconnectCount: 0
-    })
+    }
     
     // 少于等于9路自动切换回3x3
-    if (selectedChannels.value.length <= 9 && currentLayout.value === '4x4') {
-      // 延迟切换，避免频繁切换
+    if (activeCount + 1 <= 9 && currentLayout.value === '4x4') {
       setTimeout(() => {
-        if (selectedChannels.value.length <= 9) {
+        const count = selectedChannels.value.filter(c => c !== null).length
+        if (count <= 9) {
           currentLayout.value = '3x3'
           console.log('自动切换回3x3布局')
         }
@@ -121,9 +138,9 @@ export const useWVPStore = defineStore('wvp', () => {
     }
     
     await wvpApi.value.stopPlay(channel.deviceId, channel.channelId)
-    selectedChannels.value.splice(index, 1)
+    selectedChannels.value[index] = null
     
-    console.log('Stopped channel:', channel.name)
+    console.log('Stopped channel at slot', index)
   }
 
   async function stopAllChannels() {
@@ -132,15 +149,18 @@ export const useWVPStore = defineStore('wvp', () => {
     }
     
     for (let i = 0; i < selectedChannels.value.length; i++) {
-      await stopChannel(i)
+      const channel = selectedChannels.value[i]
+      if (channel) {
+        await wvpApi.value.stopPlay(channel.deviceId, channel.channelId)
+        selectedChannels.value[i] = null
+      }
     }
-    
-    selectedChannels.value = []
   }
 
   return {
     devices,
     selectedChannels,
+    activeChannels,
     currentLayout,
     wvpApi,
     wvpConnected,

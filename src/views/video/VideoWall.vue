@@ -270,22 +270,22 @@ onBeforeUnmount(() => {
           class="grid gap-2 h-full w-full"
           :class="store.currentLayout === '3x3' ? 'grid-cols-3 grid-rows-3' : 'grid-cols-4 grid-rows-4'"
         >
-          <!-- 固定格子：根据索引显示视频或空白占位 -->
+          <!-- 固定格子：根据 playerIndex 查找对应的 channel -->
           <div 
-            v-for="i in maxSlots" 
-            :key="`slot-${i}`"
+            v-for="slotIndex in maxSlots" 
+            :key="`slot-${slotIndex}`"
             class="w-full h-full"
           >
-            <!-- 已播放的通道 -->
+            <!-- 查找 playerIndex 等于当前 slotIndex-1 的 channel -->
             <StreamPlayer
-              v-if="i <= store.selectedChannels.length"
-              :device-id="store.selectedChannels[i-1].deviceId"
-              :channel-id="store.selectedChannels[i-1].channelId"
-              :play-url="store.selectedChannels[i-1].playUrl"
-              :stream-content="store.selectedChannels[i-1].streamContent"
-              :player-index="i-1"
-              :priority="i-1 < 4 ? 'high' : 'normal'"
-              @close="stopChannel(i-1)"
+              v-if="store.selectedChannels[slotIndex-1]"
+              :device-id="store.selectedChannels[slotIndex-1]!.deviceId"
+              :channel-id="store.selectedChannels[slotIndex-1]!.channelId"
+              :play-url="store.selectedChannels[slotIndex-1]!.playUrl"
+              :stream-content="store.selectedChannels[slotIndex-1]!.streamContent"
+              :player-index="slotIndex-1"
+              :priority="slotIndex-1 < 4 ? 'high' : 'normal'"
+              @close="stopChannel(slotIndex-1)"
             />
             
             <!-- 空白格子占位 -->

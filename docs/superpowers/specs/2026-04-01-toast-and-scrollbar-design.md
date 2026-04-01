@@ -1,14 +1,15 @@
-# Toast UI/UX 一致性改进与滚动条隐藏设计文档
+# Toast UI/UX 一致性改进、滚动条隐藏与 VideoWall Grid 优化设计文档
 
 ## 概述
 
-本文档描述了对 Toast 组件进行 shadcn-vue 风格适配以及 Electron 应用全局隐藏垂直滚动条的设计方案。
+本文档描述了对 Toast 组件进行 shadcn-vue 风格适配、Electron 应用全局隐藏垂直滚动条以及 VideoWall Grid 布局优化三个 UI/UX 改进的设计方案。
 
 ## 目标
 
 1. **Toast 组件改进**：完全符合 shadcn-vue Sonner 风格设计规范，使用 lucide-vue-next 图标库
 2. **滚动条隐藏**：全局隐藏右侧垂直滚动条，保留滚动功能
-3. **向后兼容**：保持现有 useToast API 不变，确保平滑迁移
+3. **VideoWall Grid 优化**：修复 Grid item 未撑满容器的问题，实现严格的 3x3 或 4x4 均分布局
+4. **向后兼容**：保持现有 useToast API 不变，确保平滑迁移
 
 ## 整体架构
 
@@ -57,6 +58,25 @@ src/components/ui/toast/
 - 兼容多浏览器（Chrome/Electron、Firefox）
 - 保持滚动功能，仅隐藏视觉
 - 全局生效，无需逐个容器配置
+
+### VideoWall Grid 优化架构
+
+**问题分析：**
+- VideoWall.vue 和 StreamPlayer.vue 都使用了 `aspect-video` 类
+- `aspect-video` 强制元素保持 16:9 宽高比
+- 导致 grid item 无法撑满容器，产生大量空白间距
+- 无法实现严格的 3x3 或 4x4 均分布局
+
+**解决方案：**
+- 移除 StreamPlayer.vue 和 VideoWall.vue 中的 `aspect-video` 类
+- 改为使用 `w-full h-full` 让每个格子撑满 grid item
+- 保持现有的 grid CSS 规则（`grid-cols-3/4`, `grid-rows-3/4`）
+
+**优化效果：**
+- 每个视频格子完全撑满 grid item
+- 实现严格的 3x3 或 4x4 均分布局
+- 消除上下间距空白
+- 保持视频内容的正确显示（使用 `object-contain`）
 
 ## 详细设计
 
@@ -215,6 +235,83 @@ aside::-webkit-scrollbar {
 - 拖拽滚动
 - 滚动到顶部/底部边界
 
+### VideoWall Grid 优化详细设计
+
+#### 问题定位
+
+**当前代码问题：**
+1. **StreamPlayer.vue 第 173 行**：
+   ```vue
+   <div class="relative aspect-video bg-black rounded-lg overflow-hidden border border-border group">
+   ```
+   使用了 `aspect-video` 类，强制容器保持 16:9 宽高比
+
+2. **VideoWall.vue 第 230 行**（空白格子）：
+   ```vue
+   <div
+     v-for="i in (maxSlots - store.selectedChannels.length)"
+     :key="`empty-${i}`"
+     class="aspect-video bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30 flex items-center justify-center"
+   >
+   ```
+   同样使用了 `aspect-video` 类
+
+**影响：**
+- 每个格子不能完全撑满 grid item
+- 在 3x3 或 4x4 布局中产生大量上下空白间距
+- 无法实现严格的均分布局
+
+#### 优化方案
+
+**修改 1：StreamPlayer.vue**
+- 移除 `aspect-video` 类
+- 改为使用 `w-full h-full` 撑满容器
+- 保持视频元素的 `object-contain` 类，确保视频内容正确显示
+
+**修改 2：VideoWall.vue**
+- 移除空白格子的 `aspect-video` 类
+- 改为使用 `w-full h-full` 撑满容器
+- 保持现有的 grid CSS 规则不变
+
+#### CSS 规则验证
+
+**现有 grid CSS 规则（正确）：**
+```css
+.grid {
+  display: grid;
+  width: 100%;
+  height: 100%;
+}
+
+.grid-cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.grid-rows-3 {
+  grid-template-rows: repeat(3, 1fr);
+}
+
+.grid-rows-4 {
+  grid-template-rows: repeat(4, 1fr);
+}
+
+.grid > * {
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+```
+
+**验证要点：**
+- `grid-template-columns: repeat(N, 1fr)` 确保 N 列均分宽度
+- `grid-template-rows: repeat(N, 1fr)` 确保 N 行均分高度
+- `min-height: 0` 和 `min-width: 0` 确保 grid item 不受默认最小尺寸限制
+- `overflow: hidden` 确保内容不溢出
+
 ## 数据流与错误处理
 
 ### Toast 数据流设计
@@ -325,6 +422,31 @@ ToastItem.vue (子组件)
 2. 大量内容时滚动正常
 3. CSS 规则不影响页面渲染性能
 
+### VideoWall Grid 优化验证清单
+
+**视觉验证：**
+1. 3x3 布局：每个格子完全撑满 grid item，无空白间距
+2. 4x4 布局：每个格子完全撑满 grid item，无空白间距
+3. 混合布局：已播放视频和空白格子都撑满 grid item
+4. 视频内容正确显示（使用 object-contain，不变形）
+
+**功能验证：**
+1. 视频播放正常，无黑边或溢出
+2. 空白格子显示占位符文本
+3. Grid 响应式布局正常
+4. 切换布局（3x3 ↔ 4x4）时网格正确更新
+
+**边界测试：**
+1. 单个视频播放时撑满第一个格子
+2. 多个视频播放时均匀分布
+3. 最大数量视频（9 或 16）都正确显示
+4. 不同分辨率视频都正确适配
+
+**性能验证：**
+1. Grid 渲染性能流畅
+2. 视频播放无卡顿
+3. 布局切换动画流畅
+
 ### 验证命令
 
 **开发模式测试：**
@@ -351,8 +473,9 @@ vue-tsc --noEmit
 
 1. **高优先级**：Toast 组件核心功能（消息显示、图标、动画）
 2. **高优先级**：滚动条隐藏 CSS 规则
-3. **中优先级**：Toast 高级功能（hover 暂停、进度条）
-4. **低优先级**：Toast 可选功能（description 参数）
+3. **高优先级**：VideoWall Grid 优化（移除 aspect-video）
+4. **中优先级**：Toast 高级功能（hover 暂停、进度条）
+5. **低优先级**：Toast 可选功能（description 参数）
 
 ## 风险与缓解
 
@@ -368,6 +491,9 @@ vue-tsc --noEmit
 **风险 4：跨浏览器兼容性问题**
 - 缓解措施：同时支持 Chrome/Electron 和 Firefox 的滚动条隐藏方案
 
+**风险 5：VideoWall Grid 优化影响视频显示**
+- 缓解措施：保持视频元素的 object-contain 类，确保视频内容正确显示，不变形
+
 ## 总结
 
-本设计文档描述了完整的 Toast UI/UX 一致性改进方案和 Electron 应用滚动条隐藏方案。采用 shadcn-vue Sonner 风格设计，使用 lucide-vue-next 图标库，确保与项目现有设计系统一致。通过全局 CSS 规则实现滚动条隐藏，保持滚动功能完整。整体方案向后兼容，风险可控，测试策略完善。
+本设计文档描述了完整的 Toast UI/UX 一致性改进方案、Electron 应用滚动条隐藏方案和 VideoWall Grid 布局优化方案。采用 shadcn-vue Sonner 风格设计，使用 lucide-vue-next 图标库，确保与项目现有设计系统一致。通过全局 CSS 规则实现滚动条隐藏，保持滚动功能完整。通过移除 aspect-video 类并使用 w-full h-full，实现严格的 3x3 或 4x4 均分布局。整体方案向后兼容，风险可控，测试策略完善。

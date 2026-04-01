@@ -17,7 +17,8 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'error', error: Error): void
   (e: 'reconnect'): void
-  (e: 'request-url'): void  // 请求播放地址
+  (e: 'request-url'): void
+  (e: 'close'): void  // 关闭播放器
 }>()
 
 const videoRef = ref<HTMLVideoElement | null>(null)
@@ -179,6 +180,18 @@ function destroyPlayer() {
       playsinline
       autoplay
     />
+
+    <!-- 关闭按钮 -->
+    <button
+      v-if="status === 'playing'"
+      class="absolute top-2 left-2 z-10 p-1.5 bg-black/50 hover:bg-black/70 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity"
+      @click="emit('close')"
+      title="关闭"
+    >
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+      </svg>
+    </button>
 
     <!-- 信号质量指示器 -->
     <Badge

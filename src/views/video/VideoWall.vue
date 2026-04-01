@@ -6,26 +6,33 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import StreamPlayer from '@/components/VideoPlayer/StreamPlayer.vue'
 import MemoryStats from '@/components/VideoPlayer/MemoryStats.vue'
+import Toast from '@/components/ui/toast/Toast.vue'
+import { useToast } from '@/composables/useToast'
 
 const store = useWVPStore()
+const toast = useToast()
 
 const loading = ref(false)
-const error = ref<string | null>(null)
+const loadingChannels = ref<Set<string>>(new Set()) // 正在加载通道的设备
 const expandedDevices = ref<Set<string>>(new Set())
+const toastInstance = ref<any>(null)
 
 async function loadDevices() {
+  if (loading.value) return // 防止重复点击
+  
   loading.value = true
-  error.value = null
   
   try {
     if (!store.wvpConnected) {
       await store.initializeWVP('http://192.168.2.38:18080', 'admin', 'admin')
+      toast.success('WVP 连接成功')
     }
     
     await store.loadDevices()
+    toast.success(`加载成功：${store.devices.length} 个设备`)
   } catch (err: any) {
-    error.value = err.message || '加载设备失败'
     console.error('Load devices error:', err)
+    toast.error(`加载失败：${err.message}`)
   } finally {
     loading.value = false
   }
@@ -41,23 +48,52 @@ function toggleDevice(deviceId: string) {
 
 async function handleChannelClick(deviceId: string, channelId: string, status: string) {
   if (status === 'offline') {
+    toast.warning('该通道离线，无法播放')
     return
   }
   
+  // 防止重复点击
+  const key = `${deviceId}-${channelId}`
+  if (loadingChannels.value.has(key)) {
+    return
+  }
+  
+  loadingChannels.value.add(key)
+  
   try {
     await store.selectChannel(deviceId, channelId)
+    toast.success('开始播放')
   } catch (err: any) {
     console.error('Select channel error:', err)
-    error.value = err.message
-    setTimeout(() => error.value = null, 3000)
+    toast.error(`播放失败：${err.message}`)
+  } finally {
+    loadingChannels.value.delete(key)
+  }
+}
+
+async function stopChannel(index: number) {
+  try {
+    await store.stopChannel(index)
+    toast.info('已停止播放')
+  } catch (err: any) {
+    toast.error(`停止失败：${err.message}`)
   }
 }
 
 async function stopAll() {
-  await store.stopAllChannels()
+  try {
+    await store.stopAllChannels()
+    toast.info('已停止所有播放')
+  } catch (err: any) {
+    toast.error(`停止失败：${err.message}`)
+  }
 }
 
 onMounted(() => {
+  // 初始化 toast 实例
+  if (toastInstance.value) {
+    toast.setToastInstance(toastInstance.value)
+  }
   loadDevices()
 })
 
@@ -98,10 +134,8 @@ onBeforeUnmount(() => {
       </div>
     </div>
 
-    <!-- Error Toast -->
-    <div v-if="error" class="fixed top-4 right-4 z-50 p-4 bg-red-500 text-white rounded-lg shadow-lg">
-      {{ error }}
-    </div>
+    <!-- Toast 组件 -->
+    <Toast ref="toastInstance" />
 
     <!-- Main Content -->
     <div class="flex-1 flex overflow-hidden">
@@ -182,6 +216,7 @@ onBeforeUnmount(() => {
             :stream-content="channel.streamContent"
             :player-index="index"
             :priority="channel.playerIndex < 4 ? 'high' : 'normal'"
+            @close="stopChannel(index)"
           />
         </div>
       </div>

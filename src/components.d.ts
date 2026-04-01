@@ -77,6 +77,7 @@ declare module 'vue' {
     Switch: typeof import('./components/ui/switch/Switch.vue')['default']
     ThemeToggle: typeof import('./components/ThemeToggle.vue')['default']
     TitleBar: typeof import('./components/TitleBar.vue')['default']
+    Toast: typeof import('./components/ui/toast/Toast.vue')['default']
     Tooltip: typeof import('./components/ui/tooltip/Tooltip.vue')['default']
     TooltipContent: typeof import('./components/ui/tooltip/TooltipContent.vue')['default']
     TooltipProvider: typeof import('./components/ui/tooltip/TooltipProvider.vue')['default']

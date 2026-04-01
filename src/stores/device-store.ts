@@ -35,10 +35,10 @@ export const useDeviceStore = defineStore('devices', {
 
   actions: {
     initializeWVP(baseUrl: string, token: string) {
-      this.wvpApi = new WVPApiService(baseUrl)
-      // Set token
-      this.wvpApi.token = token
-      this.protocolManager = new StreamProtocolManager(this.wvpApi)
+      const api = new WVPApiService(baseUrl)
+      api.setToken(token)
+      this.wvpApi = api
+      this.protocolManager = new StreamProtocolManager(api)
     },
 
     async syncDevices() {

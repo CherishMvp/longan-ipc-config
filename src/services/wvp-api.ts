@@ -11,7 +11,6 @@ export interface WVPChannel {
   channelId: string
   name: string
   status: 'online' | 'offline'
-  streamType?: 'H264' | 'H265'
 }
 
 export interface StreamContent {
@@ -43,13 +42,17 @@ export interface PlayResponse {
 
 export class WVPApiService {
   private baseUrl: string
-  public token: string = ''
+  private token: string = ''
   private tokenExpireTime: number = 0
   private username: string = ''
   private password: string = ''
 
   constructor(baseUrl: string) {
     this.baseUrl = baseUrl
+  }
+
+  setToken(token: string): void {
+    this.token = token
   }
 
   async login(username: string, password: string): Promise<string> {
@@ -113,8 +116,7 @@ export class WVPApiService {
     return channelList.map((channel: any) => ({
       channelId: channel.ID || channel.channelId,
       name: channel.Name || channel.name || 'Unknown',
-      status: channel.Online ? 'online' : 'offline',
-      streamType: channel.StreamType || 'H264'
+      status: channel.Online ? 'online' : 'offline'
     }))
   }
 

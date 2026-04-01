@@ -13,9 +13,13 @@ const store = useWVPStore()
 const toast = useToast()
 
 const loading = ref(false)
-const loadingChannels = ref<Set<string>>(new Set()) // 正在加载通道的设备
+const loadingChannels = ref<Set<string>>(new Set())
 const expandedDevices = ref<Set<string>>(new Set())
 const toastInstance = ref<any>(null)
+
+const maxSlots = computed(() => {
+  return store.currentLayout === '3x3' ? 9 : 16
+})
 
 async function loadDevices() {
   if (loading.value) return // 防止重复点击
@@ -195,16 +199,18 @@ onBeforeUnmount(() => {
       </div>
 
       <!-- 视频网格区域 -->
-      <div class="flex-1 p-4 overflow-hidden flex flex-col">
+      <div class="flex-1 p-4 overflow-hidden">
         <div v-if="store.selectedChannels.length === 0" class="flex items-center justify-center h-full">
           <p class="text-muted-foreground">点击左侧设备通道开始播放</p>
         </div>
 
+        <!-- 固定网格布局：每个格子均分 -->
         <div 
           v-else 
-          class="grid gap-2 h-full content-start"
+          class="grid gap-2 h-full w-full"
           :class="store.currentLayout === '3x3' ? 'grid-cols-3 grid-rows-3' : 'grid-cols-4 grid-rows-4'"
         >
+          <!-- 已播放的通道 -->
           <StreamPlayer
             v-for="(channel, index) in store.selectedChannels"
             :key="`${channel.deviceId}-${channel.channelId}`"
@@ -216,6 +222,15 @@ onBeforeUnmount(() => {
             :priority="channel.playerIndex < 4 ? 'high' : 'normal'"
             @close="stopChannel(index)"
           />
+          
+          <!-- 空白格子占位：填充剩余位置 -->
+          <div
+            v-for="i in (maxSlots - store.selectedChannels.length)"
+            :key="`empty-${i}`"
+            class="aspect-video bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30 flex items-center justify-center"
+          >
+            <span class="text-muted-foreground/50 text-sm">点击左侧添加</span>
+          </div>
         </div>
       </div>
     </div>
@@ -223,13 +238,34 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
-/* 固定 Grid 布局，避免换行时空白问题 */
+/* Grid 容器：每个格子均分 */
 .grid {
-  grid-auto-rows: 1fr;
+  display: grid;
+  width: 100%;
+  height: 100%;
 }
 
+.grid-cols-3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.grid-cols-4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.grid-rows-3 {
+  grid-template-rows: repeat(3, 1fr);
+}
+
+.grid-rows-4 {
+  grid-template-rows: repeat(4, 1fr);
+}
+
+/* 确保每个格子不超出 */
 .grid > * {
   min-height: 0;
+  min-width: 0;
+  overflow: hidden;
 }
 
 /* 隐藏默认滚动条 */

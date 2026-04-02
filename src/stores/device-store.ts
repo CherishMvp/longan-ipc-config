@@ -130,15 +130,14 @@ export const useWVPStore = defineStore('wvp', () => {
       hls: streamContent.hls
     })
     
-    // 优先使用 HTTP-FLV（更稳定），其次是 WS-FLV
-    // 注意：ws_flv 需要认证头，mpegts.js 默认不传递
-    let playUrl = streamContent.flv || streamContent.ws_flv || streamContent.hls
+    // 优先使用 WS-FLV（无跨域限制），其次是 HTTP-FLV，最后是 HLS
+    let playUrl = streamContent.ws_flv || streamContent.flv || streamContent.hls
     
     if (!playUrl) {
       throw new Error('No playable URL available')
     }
     
-    // 如果是 ws_flv，需要拼接 token
+    // 如果是 ws_flv，需要拼接 token 认证
     if (playUrl === streamContent.ws_flv && wvpApi.value) {
       const token = wvpApi.value.getToken()
       if (token && !playUrl.includes('token=')) {

@@ -173,10 +173,16 @@ function updateDiagnostics() {
       player.attachMediaElement(videoRef.value as any)
       
       const video = videoRef.value!
+      video.addEventListener('loadeddata', () => {
+        isConnecting.value = false  // 视频数据加载完成，关闭 loading
+        logger.info('player', `Video loaded [${props.playerIndex}]`, { deviceId: props.deviceId })
+      })
+      
       video.addEventListener('error', (e) => {
         const error = video.error
         diagnostics.value.videoError = error ? { code: error.code, message: error.message } : null
         diagnostics.value.lastError = `Video error: code=${error?.code}, msg=${error?.message}`
+        isConnecting.value = false  // 错误时也关闭 loading
         
         logger.error('player', `Video 元素错误 [${props.playerIndex}]`, {
           code: error?.code,
@@ -198,6 +204,7 @@ function updateDiagnostics() {
       video.addEventListener('playing', () => {
         diagnostics.value.lastError = ''
         updateDiagnostics()
+        isConnecting.value = false  // 确保 loading 关闭
         
         logger.info('player', `Video playing [${props.playerIndex}]`, {
           deviceId: props.deviceId,

@@ -407,12 +407,13 @@ function destroyPlayer() {
     </button>
 
     <!-- 加载状态 -->
-    <div v-if="isConnecting" class="absolute inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center">
-      <div class="flex flex-col items-center gap-2">
-        <Skeleton class="w-10 h-10 rounded-full" />
-        <span class="text-xs text-muted-foreground font-mono">
-          {{ retryCount > 0 ? `RECONNECTING #${retryCount}` : 'CONNECTING...' }}
-        </span>
+    <div v-if="isConnecting" class="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-10">
+      <div class="flex flex-col items-center gap-4">
+        <div class="w-10 h-10 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+        <div class="flex flex-col items-center gap-2">
+          <p class="text-sm font-medium text-white">{{ retryCount > 0 ? '重新连接中...' : '正在加载...' }}</p>
+          <p v-if="retryCount > 0" class="text-xs text-white/60">重试 #{{ retryCount }}</p>
+        </div>
       </div>
     </div>
 

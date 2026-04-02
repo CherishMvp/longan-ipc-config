@@ -6,6 +6,7 @@
     "type": "git",
     "url": "https://github.com/CherishMvp/longan-ipc-config.git"
   },
+  "author": "CherishMvp",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev": "vite",
@@ -29,7 +30,6 @@
     "productName": "Longan IPC Tools",
     "executableName": "longan-ipc-tools",
     "copyright": "Copyright © 2025",
-    "author": "CherishMvp",
     "asar": true,
     "asarUnpack": [
       "**/node_modules/ffmpeg-static/**/*",

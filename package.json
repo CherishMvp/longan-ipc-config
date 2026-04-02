@@ -29,7 +29,7 @@
     "productName": "Longan IPC Tools",
     "executableName": "longan-ipc-tools",
     "copyright": "Copyright © 2025",
-    "afterPack": "./scripts/afterPack.js",
+    "author": "CherishMvp",
     "asar": true,
     "asarUnpack": [
       "**/node_modules/ffmpeg-static/**/*",

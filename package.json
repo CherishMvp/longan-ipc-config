@@ -29,15 +29,13 @@
     "productName": "Longan IPC Tools",
     "executableName": "longan-ipc-tools",
     "copyright": "Copyright © 2025",
+    "afterPack": "./scripts/afterPack.js",
     "asar": true,
-    "asarUnpacked": [
-      "**/node_modules/ffmpeg-static/**/*"
+    "asarUnpack": [
+      "**/node_modules/ffmpeg-static/**/*",
+      "**/node_modules/better-sqlite3/**/*"
     ],
     "compression": "maximum",
-    "electronLanguages": [
-      "zh-CN",
-      "en"
-    ],
     "directories": {
       "output": "release"
     },
@@ -54,6 +52,9 @@
       "!*.md",
       "!scripts/**/*"
     ],
+    "electronLanguages": [
+      "zh-CN"
+    ],
     "win": {
       "icon": "electron/build/icon.ico",
       "target": [
@@ -64,7 +65,13 @@
           ]
         }
       ],
-      "artifactName": "${name}-${version}-win-${arch}.${ext}"
+      "artifactName": "${name}-${version}-win-${arch}.${ext}",
+      "files": [
+        "**/*",
+        "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
+        "!**/node_modules/*/{test,tests,example,examples,coverage,tests-ts,tests-js}",
+        "!resources/inspector*"
+      ]
     },
     "mac": {
       "icon": "electron/build/icon.icns",

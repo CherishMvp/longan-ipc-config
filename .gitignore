@@ -49,3 +49,8 @@ worklog-*.md
 .opencode/
 
 devlog-*.md
+
+# Database files (runtime data)
+data/*.db
+data/*.db-shm
+data/*.db-wal

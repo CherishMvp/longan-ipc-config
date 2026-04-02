@@ -39,7 +39,13 @@ export const useSettingsStore = defineStore('settings', () => {
       const config = await window.electronAPI.getConfig()
       
       if (config['settings.wvp']) {
-        wvpConfig.value = { ...wvpConfig.value, ...config['settings.wvp'] }
+        const loadedConfig = config['settings.wvp']
+        // 确保 enabled 是布尔值
+        const normalizedConfig = {
+          ...loadedConfig,
+          enabled: Boolean(loadedConfig.enabled)
+        }
+        wvpConfig.value = { ...wvpConfig.value, ...normalizedConfig }
       }
       
       if (config['settings.onvif']) {
@@ -69,8 +75,9 @@ export const useSettingsStore = defineStore('settings', () => {
       
       loadingMessage.value = '正在保存配置...'
       
+      const configToSave = JSON.parse(JSON.stringify(wvpConfig.value))
       await window.electronAPI.saveConfig({
-        'settings.wvp': wvpConfig.value
+        'settings.wvp': configToSave
       })
       
       loadingMessage.value = '正在重新初始化 WVP...'
@@ -110,8 +117,9 @@ export const useSettingsStore = defineStore('settings', () => {
     }
     
     try {
+      const configToSave = JSON.parse(JSON.stringify(onvifConfig.value))
       await window.electronAPI.saveConfig({
-        'settings.onvif': onvifConfig.value
+        'settings.onvif': configToSave
       })
       return { success: true }
     } catch (e: any) {
@@ -119,7 +127,7 @@ export const useSettingsStore = defineStore('settings', () => {
     }
   }
   
-  loadFromDB()
+  const initPromise = loadFromDB()
   
   return {
     wvpConfig,
@@ -128,6 +136,7 @@ export const useSettingsStore = defineStore('settings', () => {
     loadingMessage,
     loadFromDB,
     saveWVPConfig,
-    saveONVIFConfig
+    saveONVIFConfig,
+    initPromise
   }
 })

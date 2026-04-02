@@ -57,10 +57,12 @@ export const useDeviceStore = defineStore('device', () => {
         const dbLogs = await window.electronAPI.getLogs(100)
         logs.value = dbLogs
 
-        // Load config
+        // Load config (exclude settings.* keys to avoid pollution)
         const dbConfig = await window.electronAPI.getConfig()
         if (dbConfig && Object.keys(dbConfig).length > 0) {
-          globalConfig.value = { ...globalConfig.value, ...dbConfig }
+          if (dbConfig['globalConfig']) {
+            globalConfig.value = { ...globalConfig.value, ...dbConfig['globalConfig'] }
+          }
         }
       } catch (e) {
         console.error('Failed to initialize from DB:', e)
@@ -70,7 +72,10 @@ export const useDeviceStore = defineStore('device', () => {
 
   const saveConfig = async () => {
     if (window.electronAPI) {
-      await window.electronAPI.saveConfig(globalConfig.value)
+      const configToSave = JSON.parse(JSON.stringify(globalConfig.value))
+      await window.electronAPI.saveConfig({
+        'globalConfig': configToSave
+      })
     }
   }
 
@@ -80,8 +85,10 @@ export const useDeviceStore = defineStore('device', () => {
       throw new Error(`设备IP ${device.ip} 已存在`)
     }
     
+    // 解包可能的 Proxy 对象
+    const deviceData = JSON.parse(JSON.stringify(device))
     const newDeviceData = {
-      ...device,
+      ...deviceData,
       status: 'unknown'
     }
 
@@ -139,7 +146,7 @@ export const useDeviceStore = defineStore('device', () => {
     const newLog = {
       type,
       message,
-      data,
+      data: data ? JSON.parse(JSON.stringify(data)) : undefined,
       time: new Date().toLocaleTimeString()
     }
     

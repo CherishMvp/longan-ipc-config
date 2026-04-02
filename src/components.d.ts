@@ -72,6 +72,7 @@ declare module 'vue' {
     SelectTrigger: typeof import('./components/ui/select/SelectTrigger.vue')['default']
     SelectValue: typeof import('./components/ui/select/SelectValue.vue')['default']
     Separator: typeof import('./components/ui/separator/Separator.vue')['default']
+    SettingsLoadingOverlay: typeof import('./components/SettingsLoadingOverlay.vue')['default']
     Skeleton: typeof import('./components/ui/skeleton/Skeleton.vue')['default']
     StreamPlayer: typeof import('./components/VideoPlayer/StreamPlayer.vue')['default']
     Switch: typeof import('./components/ui/switch/Switch.vue')['default']
@@ -84,6 +85,5 @@ declare module 'vue' {
     TooltipProvider: typeof import('./components/ui/tooltip/TooltipProvider.vue')['default']
     TooltipTrigger: typeof import('./components/ui/tooltip/TooltipTrigger.vue')['default']
     UpdateChecker: typeof import('./components/UpdateChecker.vue')['default']
-    WebRTCPlayer: typeof import('./components/VideoPlayer/WebRTCPlayer.vue')['default']
   }
 }

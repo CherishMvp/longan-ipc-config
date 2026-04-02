@@ -91,9 +91,9 @@ async function handleSaveONVIF() {
           
           <div class="flex items-center justify-between">
             <label class="text-sm font-medium">启用 WVP 功能</label>
-            <Switch
-              :checked="settingsStore.wvpConfig.enabled"
-              @update:checked="settingsStore.wvpConfig.enabled = $event"
+            <Switch 
+              :model-value="settingsStore.wvpConfig.enabled"
+              @update:model-value="(val: boolean) => settingsStore.wvpConfig.enabled = val"
             />
           </div>
           

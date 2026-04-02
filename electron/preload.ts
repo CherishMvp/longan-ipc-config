@@ -29,7 +29,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   addLog: (log: any) => ipcRenderer.invoke('db-add-log', log),
   clearLogs: () => ipcRenderer.invoke('db-clear-logs'),
 
-  saveConfig: (config: any) => ipcRenderer.invoke('db-save-config', config),
+saveConfig: (config: any) => ipcRenderer.invoke('db-save-config', config),
   getConfig: () => ipcRenderer.invoke('db-get-config'),
 
   // Onvif

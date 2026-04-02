@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useWVPStore } from '@/stores/device-store'
+import { useSettingsStore } from '@/stores/settings'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -8,9 +9,13 @@ import StreamPlayer from '@/components/VideoPlayer/StreamPlayer.vue'
 import MemoryStats from '@/components/VideoPlayer/MemoryStats.vue'
 import Toast from '@/components/ui/toast/Toast.vue'
 import { useToast } from '@/composables/useToast'
+import { Settings2 } from 'lucide-vue-next'
+import { useRouter } from 'vue-router'
 
 const store = useWVPStore()
+const settingsStore = useSettingsStore()
 const toast = useToast()
+const router = useRouter()
 
 const loading = ref(false)
 const loadingChannels = ref<Set<string>>(new Set())
@@ -18,7 +23,8 @@ const expandedDevices = ref<Set<string>>(new Set())
 const toastInstance = ref<any>(null)
 const filterStatus = ref<'all' | 'online' | 'offline'>('all')
 const isFullscreen = ref(false)
-const isFirstLoad = ref(true) // 判断是否是第一次加载视频
+const isFirstLoad = ref(true)
+const wvpDisabled = ref(false) // WVP 功能禁用标志
 
 const maxSlots = computed(() => {
   return store.currentLayout === '3x3' ? 9 : 16
@@ -42,8 +48,25 @@ async function loadDevices() {
   loading.value = true
   
   try {
+    // 确保从 DB 加载最新配置
+    await settingsStore.loadFromDB()
+    
+    // 检查 WVP 是否启用
+    if (!settingsStore.wvpConfig.enabled) {
+      wvpDisabled.value = true
+      loading.value = false
+      return
+    }
+    
+    wvpDisabled.value = false
+    
     if (!store.wvpConnected) {
-      await store.initializeWVP('http://192.168.2.38:18080', 'admin', 'admin')
+      console.log('[VideoWall] Using WVP config from DB:', settingsStore.wvpConfig.baseUrl)
+      await store.initializeWVP(
+        settingsStore.wvpConfig.baseUrl,
+        settingsStore.wvpConfig.username,
+        settingsStore.wvpConfig.password
+      )
       toast.success('WVP 连接成功')
     }
     
@@ -55,6 +78,10 @@ async function loadDevices() {
   } finally {
     loading.value = false
   }
+}
+
+function goToSettings() {
+  router.push('/settings')
 }
 
 function toggleDevice(deviceId: string) {
@@ -143,7 +170,23 @@ onBeforeUnmount(() => {
 </script>
 
 <template>
-  <div class="h-screen flex flex-col bg-background overflow-hidden">
+  <!-- WVP 功能禁用提示 -->
+  <div v-if="wvpDisabled" class="h-screen flex flex-col items-center justify-center bg-background">
+    <div class="text-center space-y-4 max-w-md">
+      <Settings2 class="w-16 h-16 text-muted-foreground mx-auto" />
+      <h2 class="text-xl font-semibold text-foreground">WVP 功能未启用</h2>
+      <p class="text-sm text-muted-foreground">
+        视频监控功能当前处于禁用状态。请在设置中启用 WVP 功能以使用视频墙。
+      </p>
+      <Button @click="goToSettings" class="mt-4">
+        <Settings2 class="w-4 h-4 mr-2" />
+        打开设置
+      </Button>
+    </div>
+  </div>
+
+  <!-- 正常的视频墙界面 -->
+  <div v-else class="h-screen flex flex-col bg-background overflow-hidden">
     <!-- 固定 Toolbar -->
     <div class="flex-shrink-0 flex items-center justify-between p-4 border-b bg-background z-10">
       <div class="flex items-center gap-4">

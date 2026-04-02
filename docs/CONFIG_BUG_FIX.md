@@ -45,15 +45,15 @@ await window.electronAPI.saveConfig({
 
 **问题：**
 - `settings.ts` 使用嵌套格式：`{'settings.wvp': {...}}`
-- `device.ts` 使用平铺格式：直接传递 `globalConfig.value` 的属性
+- `device.ts` 使用平铺格式：直接传递 `gasSensorConfig.value` 的属性
 
 **冲突流程：**
 1. `device.ts` 读取 config 时合并所有 key（包括 `'settings.wvp'`）
 2. 用户在 `gas-config` 页面修改参数 → 触发 `saveToStorage()`
-3. 污染后的 `globalConfig` 被保存，覆盖正确格式
+3. 污染后的 `gasSensorConfig` 被保存，覆盖正确格式
 
 **修复：**
-- `device.ts` 改用 `'globalConfig'` 作为独立 key
+- `device.ts` 改用 `'globalConfig'` 作为独立 DB key（变量已重命名为 `gasSensorConfig`）
 - 读取时只读取 `config['globalConfig']`，不合并其他 key
 
 ### 原因三：VideoWall.vue 硬编码 baseUrl（配置未生效的原因）
@@ -86,7 +86,7 @@ await store.initializeWVP(
 |------|------|----------|
 | `settings.ts` | `saveWVPConfig()` | `JSON.parse(JSON.stringify(wvpConfig.value))` |
 | `settings.ts` | `saveONVIFConfig()` | `JSON.parse(JSON.stringify(onvifConfig.value))` |
-| `device.ts` | `saveConfig()` | `JSON.parse(JSON.stringify(globalConfig.value))` |
+| `device.ts` | `saveConfig()` | `JSON.parse(JSON.stringify(gasSensorConfig.value))` |
 | `device.ts` | `addDevice()` | `JSON.parse(JSON.stringify(device))` |
 | `device.ts` | `addLog()` | `data: data ? JSON.parse(JSON.stringify(data)) : undefined` |
 
@@ -95,10 +95,10 @@ await store.initializeWVP(
 **三个独立的 config key：**
 - `settings.wvp`：WVP 视频平台配置（baseUrl、用户名密码、enabled）
 - `settings.onvif`：ONVIF 默认认证配置
-- `globalConfig`：IPC 气体配置的全局参数（用户名密码、clientId、上传路径）
+- `globalConfig`（DB key）：IPC 气体传感器配置（变量名：`gasSensorConfig`）
 
 **修改的文件：**
-- `device.ts`：保存和读取都使用 `'globalConfig'` key
+- `device.ts`：变量重命名为 `gasSensorConfig`，DB key 保持为 `'globalConfig'` 以向后兼容
 - `settings.ts`：继续使用 `'settings.wvp'` 和 `'settings.onvif'`
 
 ### 修复三：动态读取 DB 配置

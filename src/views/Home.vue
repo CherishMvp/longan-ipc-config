@@ -94,8 +94,8 @@ const stats = [
       <div class="absolute bottom-0 left-0 -mb-10 -ml-10 w-40 h-40 bg-black/10 rounded-full blur-2xl"></div>
     </div>
 
-    <!-- Stats Grid -->
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+<!-- Stats Grid - Hidden temporarily -->
+    <!-- <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
       <Card v-for="stat in stats" :key="stat.label" class="overflow-hidden border-none shadow-md bg-card/50 hover:bg-card transition-colors">
         <CardContent class="p-6">
           <div class="flex items-center justify-between">
@@ -112,7 +112,7 @@ const stats = [
           </div>
         </CardContent>
       </Card>
-    </div>
+    </div> -->
 
     <!-- Quick Access / Features -->
     <div>

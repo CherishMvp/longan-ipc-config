@@ -1,6 +1,10 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 
+/**
+ * 设备信息
+ * 代表一个 IPC 气体传感器设备
+ */
 export interface Device {
   id: number
   name: string
@@ -9,7 +13,23 @@ export interface Device {
   status: 'online' | 'offline' | 'unknown'
 }
 
-export interface GlobalConfig {
+/**
+ * 气体传感器配置
+ * 
+ * 用于 IPC 气体传感器设备的认证和数据上传配置
+ * 
+ * 配置项说明：
+ * - username/password: HTTP Basic Auth 认证凭据
+ * - clientId: 客户端唯一标识
+ * - uploadPath: 传感器数据上传的服务器地址
+ * - baudRate: 串口波特率（用于 TTL 通信）
+ * - enable: 启用状态 (1=启用, 0=禁用)
+ * 
+ * @see src/api/gas.ts - API 调用实现
+ * @see src/views/gas-config/index.vue - 配置页面
+ * @see src/views/Layout.vue - 侧边栏显示用户名
+ */
+export interface GasSensorConfig {
   username: string
   password: string
   clientId: string
@@ -18,6 +38,9 @@ export interface GlobalConfig {
   enable: number
 }
 
+/**
+ * 操作日志条目
+ */
 export interface LogEntry {
   id: number
   type: 'info' | 'success' | 'error' | 'warning'
@@ -26,11 +49,28 @@ export interface LogEntry {
   data?: any
 }
 
+/**
+ * 设备管理 Store
+ * 
+ * 职责：
+ * 1. 管理气体传感器设备列表（增删改查）
+ * 2. 记录操作日志
+ * 3. 管理气体传感器配置（认证、上传路径等）
+ * 
+ * 数据持久化：
+ * - devices: 存储在 SQLite devices 表
+ * - logs: 存储在 SQLite logs 表
+ * - gasSensorConfig: 存储在 SQLite config 表 (key: 'globalConfig')
+ */
 export const useDeviceStore = defineStore('device', () => {
+  // ==================== 设备列表 ====================
   const devices = ref<Device[]>([])
+  
+  // ==================== 操作日志 ====================
   const logs = ref<LogEntry[]>([])
   
-  const globalConfig = ref<GlobalConfig>({
+  // ==================== 气体传感器配置 ====================
+  const gasSensorConfig = ref<GasSensorConfig>({
     username: 'admin',
     password: 'admin123',
     clientId: 'e5cd7e4891bf95d1d19206ce24a7b32e',
@@ -39,29 +79,31 @@ export const useDeviceStore = defineStore('device', () => {
     enable: 1
   })
 
+  // ==================== 计算属性 ====================
   const deviceCount = computed(() => devices.value.length)
   const onlineCount = computed(() => devices.value.filter(d => d.status === 'online').length)
 
-  // 初始化加载
+  // ==================== 初始化加载 ====================
   const init = async () => {
     if (window.electronAPI) {
       try {
-        // Load devices
+        // 加载设备列表
         const dbDevices = await window.electronAPI.getDevices()
         devices.value = dbDevices.map(d => ({
           ...d,
-          status: d.status || 'unknown' // Ensure status exists
+          status: d.status || 'unknown'
         }))
 
-        // Load logs
+        // 加载操作日志
         const dbLogs = await window.electronAPI.getLogs(100)
         logs.value = dbLogs
 
-        // Load config (exclude settings.* keys to avoid pollution)
+        // 加载气体传感器配置
+        // 注意：DB key 为 'globalConfig'（历史原因，保持向后兼容）
         const dbConfig = await window.electronAPI.getConfig()
         if (dbConfig && Object.keys(dbConfig).length > 0) {
           if (dbConfig['globalConfig']) {
-            globalConfig.value = { ...globalConfig.value, ...dbConfig['globalConfig'] }
+            gasSensorConfig.value = { ...gasSensorConfig.value, ...dbConfig['globalConfig'] }
           }
         }
       } catch (e) {
@@ -70,22 +112,29 @@ export const useDeviceStore = defineStore('device', () => {
     }
   }
 
+  // ==================== 气体传感器配置持久化 ====================
   const saveConfig = async () => {
     if (window.electronAPI) {
-      const configToSave = JSON.parse(JSON.stringify(globalConfig.value))
+      // 解包 Vue Proxy 对象，避免 IPC 序列化错误
+      const configToSave = JSON.parse(JSON.stringify(gasSensorConfig.value))
       await window.electronAPI.saveConfig({
-        'globalConfig': configToSave
+        'globalConfig': configToSave // DB key 保持为 'globalConfig' 以向后兼容
       })
     }
   }
 
-  // 添加设备
+  // ==================== 设备管理 ====================
+  
+  /**
+   * 添加新设备
+   * @throws 设备 IP 已存在时抛出错误
+   */
   const addDevice = async (device: Omit<Device, 'id' | 'status'>) => {
     if (devices.value.find(d => d.ip === device.ip)) {
       throw new Error(`设备IP ${device.ip} 已存在`)
     }
     
-    // 解包可能的 Proxy 对象
+    // 解包 Vue Proxy 对象，避免 IPC 序列化错误
     const deviceData = JSON.parse(JSON.stringify(device))
     const newDeviceData = {
       ...deviceData,
@@ -100,12 +149,10 @@ export const useDeviceStore = defineStore('device', () => {
         throw new Error(res.error || 'Failed to add device to DB')
       }
     } else {
-      // Fallback for dev without electron (though we use ipc now)
       devices.value.push({ ...newDeviceData, id: Date.now(), status: 'unknown' } as Device)
     }
   }
 
-  // 删除设备
   const removeDevice = async (id: number) => {
     if (!id) return
     if (window.electronAPI) {
@@ -114,7 +161,6 @@ export const useDeviceStore = defineStore('device', () => {
     devices.value = devices.value.filter(d => d.id !== id)
   }
 
-  // 清空设备
   const clearDevices = async () => {
     if (window.electronAPI) {
       for (const d of devices.value) {
@@ -124,7 +170,6 @@ export const useDeviceStore = defineStore('device', () => {
     devices.value = []
   }
 
-  // 更新设备状态
   const updateDeviceStatus = async (id: number, status: Device['status']) => {
     const device = devices.value.find(d => d.id === id)
     if (device) {
@@ -135,13 +180,23 @@ export const useDeviceStore = defineStore('device', () => {
     }
   }
 
-  // 更新全局配置
-  const updateGlobalConfig = (config: Partial<GlobalConfig>) => {
-    globalConfig.value = { ...globalConfig.value, ...config }
+  /**
+   * 更新气体传感器配置
+   * 自动触发持久化保存
+   */
+  const updateGasSensorConfig = (config: Partial<GasSensorConfig>) => {
+    gasSensorConfig.value = { ...gasSensorConfig.value, ...config }
     saveConfig()
   }
 
-  // 日志
+  // ==================== 日志管理 ====================
+  
+  /**
+   * 添加操作日志
+   * @param type 日志类型
+   * @param message 日志消息
+   * @param data 附加数据（可选，会自动解包 Proxy）
+   */
   const addLog = async (type: LogEntry['type'], message: string, data?: any) => {
     const newLog = {
       type,
@@ -166,7 +221,8 @@ export const useDeviceStore = defineStore('device', () => {
     }
   }
 
-  // 导出导出保持不变 (内存操作)
+  // ==================== 导入导出 ====================
+  
   const exportDevices = () => {
     return JSON.stringify(devices.value, null, 2)
   }
@@ -182,7 +238,6 @@ export const useDeviceStore = defineStore('device', () => {
     if (!Array.isArray(imported)) throw new Error('格式错误：数据必须是数组')
     
     let count = 0
-    // 使用 for...of 确保异步串行执行，避免 ID 冲突
     for (const d of imported) {
       if (d.name && d.ip && d.authId && !devices.value.find(x => x.ip === d.ip)) {
         try {
@@ -200,24 +255,36 @@ export const useDeviceStore = defineStore('device', () => {
     return count
   }
 
-  // Start
+  // ==================== 初始化 ====================
   init()
 
+  // ==================== 导出 ====================
   return {
+    // 状态
     devices,
-    globalConfig,
+    gasSensorConfig,
     logs,
+    
+    // 计算属性
     deviceCount,
     onlineCount,
+    
+    // 设备管理
     addDevice,
     removeDevice,
     clearDevices,
     updateDeviceStatus,
-    updateGlobalConfig,
-    exportDevices,
-    importDevices,
-    saveToStorage: saveConfig, // Alias for compatibility
+    
+    // 配置管理
+    updateGasSensorConfig,
+    saveToStorage: saveConfig, // 别名，保持向后兼容
+    
+    // 日志管理
     addLog,
-    clearLogs
+    clearLogs,
+    
+    // 导入导出
+    exportDevices,
+    importDevices
   }
 })

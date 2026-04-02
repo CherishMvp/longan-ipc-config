@@ -68,7 +68,7 @@ const menuItems = [
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border text-xs text-muted-foreground">
             <span class="w-2 h-2 rounded-full bg-primary"></span>
-            {{ store.globalConfig.username || 'admin' }}
+            {{ store.gasSensorConfig.username || 'admin' }}
           </div>
           <ThemeToggle />
         </div>

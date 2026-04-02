@@ -1,4 +1,4 @@
-import type { GlobalConfig } from '@/stores/device'
+import type { GasSensorConfig } from '@/stores/device'
 
 // 生成Basic Auth
 const getBasicAuth = (username: string, password: string): string => {
@@ -55,7 +55,7 @@ const httpRequest = async (options: {
 }
 
 // 获取气体配置
-export const getGasConfig = async (ip: string, config: GlobalConfig): Promise<any> => {
+export const getGasConfig = async (ip: string, config: GasSensorConfig): Promise<any> => {
   const auth = getBasicAuth(config.username, config.password)
   return httpRequest({
     url: `http://${ip}/CGI/State/GetTTLInfo.cgi`,
@@ -71,7 +71,7 @@ export const getGasConfig = async (ip: string, config: GlobalConfig): Promise<an
 export const setGasConfig = async (
   ip: string,
   authId: string,
-  config: GlobalConfig
+  config: GasSensorConfig
 ): Promise<any> => {
   const auth = getBasicAuth(config.username, config.password)
   const body = {

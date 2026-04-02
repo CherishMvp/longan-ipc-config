@@ -115,7 +115,7 @@ const handleGetConfig = async (id: number) => {
   store.addLog('info', `正在同步 "${device.name}" (${device.ip}) 的配置...`)
 
   try {
-    const data = await getGasConfig(device.ip, store.globalConfig)
+    const data = await getGasConfig(device.ip, store.gasSensorConfig)
     store.updateDeviceStatus(id, 'online')
     store.addLog('success', `"${device.name}" 配置同步成功`, data)
   } catch (e: any) {
@@ -134,7 +134,7 @@ const handleSetConfig = async (id: number) => {
   store.addLog('info', `正在下发配置到 "${device.name}" (${device.ip})...`)
 
   try {
-    const data = await setGasConfig(device.ip, device.authId, store.globalConfig)
+    const data = await setGasConfig(device.ip, device.authId, store.gasSensorConfig)
     store.updateDeviceStatus(id, 'online')
     store.addLog('success', `"${device.name}" 配置下发成功`, data)
   } catch (e: any) {
@@ -157,7 +157,7 @@ const handleBatchGet = async () => {
   let success = 0, fail = 0
   for (const device of store.devices) {
     try {
-      const data = await getGasConfig(device.ip, store.globalConfig)
+      const data = await getGasConfig(device.ip, store.gasSensorConfig)
       store.updateDeviceStatus(device.id, 'online')
       store.addLog('success', `[${device.name}] 同步成功`, data)
       success++
@@ -186,7 +186,7 @@ const handleBatchSet = async () => {
   let success = 0, fail = 0
   for (const device of store.devices) {
     try {
-      const data = await setGasConfig(device.ip, device.authId, store.globalConfig)
+      const data = await setGasConfig(device.ip, device.authId, store.gasSensorConfig)
       store.updateDeviceStatus(device.id, 'online')
       store.addLog('success', `[${device.name}] 下发成功`, data)
       success++
@@ -299,29 +299,29 @@ const getLogClass = (type: string) => {
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div class="space-y-2">
               <label class="text-sm font-medium leading-none">账号 (Username)</label>
-              <Input v-model="store.globalConfig.username" placeholder="admin" @change="store.saveToStorage()" />
+              <Input v-model="store.gasSensorConfig.username" placeholder="admin" @change="store.saveToStorage()" />
             </div>
             <div class="space-y-2">
               <label class="text-sm font-medium leading-none">密码 (Password)</label>
-              <Input v-model="store.globalConfig.password" type="password" placeholder="••••••" @change="store.saveToStorage()" />
+              <Input v-model="store.gasSensorConfig.password" type="password" placeholder="••••••" @change="store.saveToStorage()" />
             </div>
             <div class="space-y-2">
               <label class="text-sm font-medium leading-none">客户端 ID (Client ID)</label>
-              <Input v-model="store.globalConfig.clientId" placeholder="输入 Client ID" @change="store.saveToStorage()" />
+              <Input v-model="store.gasSensorConfig.clientId" placeholder="输入 Client ID" @change="store.saveToStorage()" />
             </div>
           </div>
 
           <!-- Row 2: Upload Path (Full Width) -->
           <div class="mb-4 space-y-2">
             <label class="text-sm font-medium leading-none">上传地址 (Upload Path)</label>
-            <Input v-model="store.globalConfig.uploadPath" placeholder="http://..." @change="store.saveToStorage()" />
+            <Input v-model="store.gasSensorConfig.uploadPath" placeholder="http://..." @change="store.saveToStorage()" />
           </div>
           
           <!-- Row 3: Baud Rate, Status (Explicit Grid Cols 3) -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="space-y-2">
               <label class="text-sm font-medium leading-none">波特率 (Baud Rate)</label>
-              <Select v-model="store.globalConfig.baudRate" @update:model-value="store.saveToStorage()">
+              <Select v-model="store.gasSensorConfig.baudRate" @update:model-value="store.saveToStorage()">
                 <SelectTrigger>
                   <SelectValue placeholder="选择波特率" />
                 </SelectTrigger>
@@ -337,7 +337,7 @@ const getLogClass = (type: string) => {
             
             <div class="space-y-2">
               <label class="text-sm font-medium leading-none">状态 (Status)</label>
-              <Select v-model="store.globalConfig.enable" @update:model-value="store.saveToStorage()">
+              <Select v-model="store.gasSensorConfig.enable" @update:model-value="store.saveToStorage()">
                 <SelectTrigger>
                   <SelectValue placeholder="选择状态" />
                 </SelectTrigger>

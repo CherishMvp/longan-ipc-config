@@ -1,6 +1,6 @@
 {
   "name": "longan-ipc-tools",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "Longan Aggregate Tools - IPC, Sensor Management & Utilities",
   "repository": {
     "type": "git",

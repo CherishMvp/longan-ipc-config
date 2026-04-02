@@ -84,9 +84,11 @@ defineExpose({
 onMounted(() => {
   initPlayer()
   startQualityMonitoring()
+  startHeartbeat()
 })
 
 onUnmounted(() => {
+  stopHeartbeat()
   destroyPlayer()
 })
 
@@ -278,14 +280,18 @@ function handleReconnect() {
   retryCount.value++
   isConnecting.value = true
   
-  logger.warn('player', `播放器重连 [${props.playerIndex}]`, {
+  // 指数退避：延迟随重试次数增加，最大 30 秒
+  const delay = Math.min(2000 * Math.pow(1.5, retryCount.value - 1), 30000)
+  
+  logger.info('player', `播放器重连 [${props.playerIndex}]`, {
     retryCount: retryCount.value,
+    delay: `${Math.round(delay / 1000)}s`,
     deviceId: props.deviceId,
     channelId: props.channelId
   })
   
   emit('reconnect')
-  setTimeout(() => initPlayer(), 2000)
+  setTimeout(() => initPlayer(), delay)
 }
 
 function updateSignalQuality(stats: any) {
@@ -307,7 +313,88 @@ function startQualityMonitoring() {
   onUnmounted(() => clearInterval(interval))
 }
 
+// ==================== 播放状态心跳检测 ====================
+let heartbeatInterval: NodeJS.Timeout | null = null
+let lastReadyState = 0
+let stuckCount = 0
+
+function startHeartbeat() {
+  if (heartbeatInterval) clearInterval(heartbeatInterval)
+  
+  heartbeatInterval = setInterval(() => {
+    const video = videoRef.value
+    if (!video || isError.value) return
+    
+    // 情况1：视频暂停但流正常（非用户主动暂停）
+    if (video.paused && !isConnecting.value && retryCount.value < 10) {
+      logger.warn('player', `检测到视频暂停，自动恢复 [${props.playerIndex}]`, {
+        deviceId: props.deviceId,
+        paused: video.paused,
+        readyState: video.readyState
+      })
+      
+      video.play().catch(e => {
+        logger.error('player', '自动恢复失败', { error: e.message })
+        // 播放失败，尝试重建播放器
+        if (retryCount.value < 10) {
+          handleReconnect()
+        }
+      })
+      return
+    }
+    
+    // 情况2：解码器假死检测（readyState 长时间未变化且有流）
+    if (!isConnecting.value && !isError.value) {
+      const currentReadyState = video.readyState
+      
+      if (currentReadyState === lastReadyState && currentReadyState > 0) {
+        stuckCount++
+        
+        // 连续 3 次检测到 readyState 未变化，判定为假死
+        if (stuckCount >= 3) {
+          logger.warn('player', `检测到解码器假死，触发重连 [${props.playerIndex}]`, {
+            deviceId: props.deviceId,
+            readyState: currentReadyState,
+            stuckCount
+          })
+          
+          stuckCount = 0
+          handleReconnect()
+          return
+        }
+      } else {
+        stuckCount = 0
+      }
+      
+      lastReadyState = currentReadyState
+    }
+    
+    // 情况3：流中断检测（有播放器实例但 video 无数据）
+    if (player && !isConnecting.value && video.readyState === 0 && video.networkState === 2) {
+      logger.warn('player', `检测到流中断，触发重连 [${props.playerIndex}]`, {
+        deviceId: props.deviceId,
+        networkState: video.networkState
+      })
+      
+      handleReconnect()
+    }
+  }, 5000) // 每 5 秒检测一次
+  
+  onUnmounted(() => {
+    if (heartbeatInterval) clearInterval(heartbeatInterval)
+  })
+}
+
+function stopHeartbeat() {
+  if (heartbeatInterval) {
+    clearInterval(heartbeatInterval)
+    heartbeatInterval = null
+  }
+}
+
 function destroyPlayer() {
+  stopHeartbeat()
+  
   if (player) {
     player.pause()
     player.unload()

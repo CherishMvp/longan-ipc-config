@@ -137,14 +137,6 @@ export const useWVPStore = defineStore('wvp', () => {
       throw new Error('No playable URL available')
     }
     
-    // 如果是 ws_flv，需要拼接 token 认证
-    if (playUrl === streamContent.ws_flv && wvpApi.value) {
-      const token = wvpApi.value.getToken()
-      if (token && !playUrl.includes('token=')) {
-        playUrl = `${playUrl}?token=${token}`
-      }
-    }
-    
     logger.info('wvp', `最终播放地址`, { playUrl })
     
     selectedChannels.value[emptySlotIndex] = {

@@ -330,10 +330,9 @@ function destroyPlayer() {
       autoplay
     />
 
-    <!-- 关闭按钮 -->
+    <!-- 关闭按钮 - 始终显示 -->
     <button
-      v-if="!isConnecting && !isError"
-      class="absolute top-2 left-2 z-10 p-1.5 bg-black/50 hover:bg-black/70 rounded text-white opacity-0 group-hover:opacity-100 transition-opacity"
+      class="absolute top-2 left-2 z-20 p-1.5 bg-black/50 hover:bg-black/70 rounded text-white transition-opacity"
       @click="emit('close')"
       title="关闭"
     >

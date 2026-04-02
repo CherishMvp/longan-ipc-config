@@ -9,23 +9,41 @@ import {
   Settings2, 
   ArrowRight, 
   Activity,
-  Cpu
+  Cpu,
+  MonitorPlay,
+  Settings
 } from 'lucide-vue-next'
 
 const store = useDeviceStore()
 
 const features = [
   {
-    title: 'IPC气体配置',
-    desc: '管理IPC设备的气体传感器配置，支持批量获取和设置',
-    icon: Settings2,
-    path: '/gas-config'
+    title: '视频监控',
+    desc: '实时视频墙，支持多路同时播放，自动发现设备通道',
+    icon: MonitorPlay,
+    path: '/video-wall',
+    status: 'new'
   },
   {
-    title: '设备自动发现',
-    desc: '基于 ONVIF/私有协议扫描局域网设备，一键导入',
+    title: '气体配置',
+    desc: 'IPC 气体传感器配置管理，支持批量同步与下发',
+    icon: Settings2,
+    path: '/gas-config',
+    status: 'stable'
+  },
+  {
+    title: '设备发现',
+    desc: 'ONVIF 协议扫描局域网设备，一键导入管理',
     icon: Wifi,
-    path: '/discovery'
+    path: '/discovery',
+    status: 'stable'
+  },
+  {
+    title: '系统设置',
+    desc: 'WVP 视频平台、ONVIF 认证等全局配置',
+    icon: Settings,
+    path: '/settings',
+    status: 'stable'
   }
 ]
 
@@ -40,7 +58,7 @@ const stats = [
     label: '在线设备', 
     value: () => store.devices.filter(d => d.status === 'online').length, 
     icon: Wifi,
-    variant: 'success' as const, // Custom variant mapping needed or use class
+    variant: 'success' as const,
     class: 'text-green-500 bg-green-500/10'
   },
   { 
@@ -55,7 +73,7 @@ const stats = [
 
 <template>
   <div class="space-y-8 p-1">
-    <!-- Hero Section -->
+<!-- Hero Section -->
     <div class="relative overflow-hidden rounded-xl bg-gradient-to-br from-primary/90 to-primary p-8 text-primary-foreground shadow-lg">
       <div class="relative z-10">
         <div class="flex items-start gap-4">
@@ -63,9 +81,9 @@ const stats = [
             <Cpu class="w-8 h-8" />
           </div>
           <div>
-            <h1 class="text-2xl font-bold tracking-tight mb-2">欢迎使用 Longan IPC Tools</h1>
+            <h1 class="text-2xl font-bold tracking-tight mb-2">Longan IPC Tools</h1>
             <p class="text-primary-foreground/80 max-w-xl leading-relaxed">
-              这是一个集成了多种实用工具的综合平台。包含 IPC 气体传感器配置、设备自动发现等功能，支持批量管理与实时监控。
+              一站式 IPC 设备管理平台。集成视频监控、气体传感器配置、设备发现等功能，支持批量操作与实时监控。
             </p>
           </div>
         </div>
@@ -105,7 +123,7 @@ const stats = [
         </h2>
       </div>
       
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <RouterLink
           v-for="feature in features"
           :key="feature.path"
@@ -118,7 +136,13 @@ const stats = [
                 <div class="p-2.5 rounded-lg bg-secondary group-hover:bg-primary group-hover:text-primary-foreground transition-colors duration-300">
                   <component :is="feature.icon" class="w-6 h-6" />
                 </div>
-                <Badge variant="outline" class="group-hover:border-primary/30 transition-colors">v1.0</Badge>
+                <Badge 
+                  v-if="feature.status === 'new'" 
+                  variant="outline" 
+                  class="border-green-500 text-green-500"
+                >
+                  NEW
+                </Badge>
               </div>
               <CardTitle class="mt-4">{{ feature.title }}</CardTitle>
               <CardDescription class="line-clamp-2 mt-2">{{ feature.desc }}</CardDescription>
